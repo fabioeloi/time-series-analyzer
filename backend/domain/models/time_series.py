@@ -53,6 +53,10 @@ class TimeSeries:
             "amplitudes": {}
         }
         
+        # Calculate sample spacing from time data
+        time_values = pd.to_numeric(self.data[self.time_column])
+        sample_spacing = (time_values.iloc[-1] - time_values.iloc[0]) / (len(time_values) - 1)
+        
         for col in self.value_columns:
             # Perform FFT
             values = self.data[col].to_numpy()
@@ -63,8 +67,6 @@ class TimeSeries:
             fft_result = np.fft.fft(values)
             # Get the frequencies
             n = len(values)
-            # Assuming uniform sampling
-            sample_spacing = 1.0  # This could be calculated from timestamps
             freqs = np.fft.fftfreq(n, sample_spacing)
             
             # Store positive frequencies and their magnitudes

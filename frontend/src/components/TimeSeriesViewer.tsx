@@ -94,7 +94,7 @@ const TimeSeriesViewer: React.FC = () => {
       .range([0, width]);
     
     // Y scale (depends on stacked or not)
-    let yScale;
+    let yScale: d3.ScaleLinear<number, number>;
     if (stacked) {
       // For stacked, find the max sum of all selected columns
       const stackedData = d3.stack()
