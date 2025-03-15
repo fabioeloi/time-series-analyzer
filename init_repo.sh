@@ -33,6 +33,27 @@ gh repo create fabioeloi/time-series-analyzer \
 
 echo -e "${GREEN}Initializing Git repository locally${NC}"
 git init
+
+# Function to clear the cache directory
+clear_cache() {
+    cache_dir="data"
+
+    if [ -d "$cache_dir" ]; then
+        rm -rf "$cache_dir"/*
+    fi
+
+    # Clear the data directory before committing
+    if [ -f "backend/data/time_series_storage.pkl" ]; then
+        rm "backend/data/time_series_storage.pkl"
+    fi
+
+    # Clear the __pycache__ directories
+    find . -type d -name "__pycache__" -exec rm -r {} +
+}
+
+# Clear the cache directory before committing
+clear_cache
+
 git add .
 git commit -m "Initial commit: Time Series Analyzer project"
 
