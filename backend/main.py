@@ -34,26 +34,65 @@ async def upload_csv(file: UploadFile = File(...),
     """
     Upload a CSV file for time series analysis.
     """
-    if file.filename.endswith('.csv'):
-        try:
-            contents = await file.read()
-            df = pd.read_csv(io.StringIO(contents.decode('utf-8')))
-            
-            # Create DTO for service request
-            request_dto = TimeSeriesRequestDTO(
-                dataframe=df,
-                time_column=time_column,
-                value_columns=value_columns
-            )
-            
-            # Process the time series data
-            result = time_series_service.process_time_series(request_dto)
-            return result
-            
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Error processing CSV: {str(e)}")
-    else:
+    if not file.filename.endswith('.csv'):
         raise HTTPException(status_code=400, detail="Please upload a CSV file")
+    
+    try:
+        contents = await file.read()
+        # Read the CSV, ensuring empty column names are properly handled
+        df = pd.read_csv(io.StringIO(contents.decode('utf-8')), low_memory=False)
+        
+        # Verify that the specified columns actually exist in the dataframe
+        all_columns = df.columns.tolist()
+        
+        if time_column and time_column not in all_columns:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Time column '{time_column}' not found in data. Available columns: {', '.join(all_columns)}"
+            )
+        
+        if value_columns:
+            invalid_columns = [col for col in value_columns if col not in all_columns]
+            if invalid_columns:
+                raise HTTPException(
+                    status_code=400, 
+                    detail=f"Column(s) {', '.join(invalid_columns)} not found in data. Available columns: {', '.join(all_columns)}"
+                )
+        
+        # Provide info about available columns if none are specified
+        if time_column is None and value_columns is None:
+            numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
+            available_cols = {
+                "all_columns": all_columns,
+                "numeric_columns": numeric_cols,
+                "suggested_time_column": all_columns[0] if all_columns else None,
+                "suggested_value_columns": numeric_cols
+            }
+            return JSONResponse(content={
+                "message": "No columns specified. Here are the available columns:",
+                "columns": available_cols
+            })
+        
+        # Create DTO for service request
+        request_dto = TimeSeriesRequestDTO(
+            dataframe=df,
+            time_column=time_column,
+            value_columns=value_columns
+        )
+        
+        # Process the time series data
+        result = time_series_service.process_time_series(request_dto)
+        return result
+        
+    except ValueError as e:
+        # Handle validation errors
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        # Log unexpected errors
+        import traceback
+        print(f"Error processing CSV: {str(e)}")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Error processing CSV: {str(e)}")
 
 @app.get("/api/analyze/{analysis_id}", response_model=TimeSeriesResponseDTO)
 async def get_analysis(analysis_id: str, domain: str = "time"):
@@ -66,6 +105,58 @@ async def get_analysis(analysis_id: str, domain: str = "time"):
         return result
     except Exception as e:
         raise HTTPException(status_code=404, detail=f"Analysis not found: {str(e)}")
+
+@app.get("/api/diagnostic")
+async def diagnostic(analysis_id: Optional[str] = None):
+    """
+    Diagnostic endpoint to help troubleshoot issues with analysis IDs.
+    Returns information about available analyses and storage status.
+    """
+    # Get the repository from the service
+    repository = time_series_service.repository
+    
+    # Check the storage file
+    storage_path = repository._storage_path
+    storage_file = repository._storage_file
+    backup_file = repository._backup_file
+    
+    storage_info = {
+        "storage_path": storage_path,
+        "storage_file": storage_file,
+        "storage_file_exists": os.path.exists(storage_file),
+        "storage_file_size": os.path.getsize(storage_file) if os.path.exists(storage_file) else 0,
+        "backup_file": backup_file,
+        "backup_file_exists": os.path.exists(backup_file),
+        "data_directory_exists": os.path.exists(storage_path)
+    }
+    
+    # Get list of available analysis IDs
+    available_ids = repository.list_available_ids()
+    
+    result = {
+        "storage_info": storage_info,
+        "available_analyses": available_ids,
+        "analysis_count": len(available_ids)
+    }
+    
+    # If specific analysis ID was provided, check if it exists
+    if analysis_id:
+        analysis = repository.find_by_id(analysis_id)
+        if analysis:
+            result["analysis_found"] = True
+            result["analysis_details"] = {
+                "id": analysis.id,
+                "name": analysis.name,
+                "created_at": analysis.created_at.isoformat() if analysis.created_at else None,
+                "time_column": analysis.time_column,
+                "value_columns": analysis.columns,
+                "data_length": len(analysis.data) if analysis.data is not None else 0
+            }
+        else:
+            result["analysis_found"] = False
+            result["error"] = f"Analysis with ID {analysis_id} not found."
+    
+    return JSONResponse(content=result)
 
 @app.get("/api/export/{analysis_id}")
 async def export_analysis(analysis_id: str, format: str = "csv", domain: str = "time"):

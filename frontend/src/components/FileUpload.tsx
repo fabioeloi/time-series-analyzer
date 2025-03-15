@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useDropzone } from 'react-dropzone';
@@ -11,8 +11,20 @@ const FileUpload: React.FC = () => {
   const [timeColumn, setTimeColumn] = useState<string>('');
   const [valueColumns, setValueColumns] = useState<string[]>([]);
   const [previewData, setPreviewData] = useState<any[]>([]);
+  const [originalHeaders, setOriginalHeaders] = useState<string[]>([]);
   
   const navigate = useNavigate();
+
+  // Effect to clear selections when file changes
+  useEffect(() => {
+    if (file === null) {
+      setColumns([]);
+      setTimeColumn('');
+      setValueColumns([]);
+      setPreviewData([]);
+      setOriginalHeaders([]);
+    }
+  }, [file]);
 
   const onDrop = (acceptedFiles: File[]) => {
     const selectedFile = acceptedFiles[0];
@@ -23,13 +35,24 @@ const FileUpload: React.FC = () => {
     reader.onload = (e) => {
       const text = e.target?.result as string;
       const lines = text.split('\n');
-      const headers = lines[0].split(',').map(h => h.trim());
+      
+      // Store original headers exactly as in the CSV
+      const rawHeaders = lines[0].split(',');
+      setOriginalHeaders(rawHeaders);
+      
+      // Process headers for display, keeping only non-empty ones
+      let headers = rawHeaders
+        .map(h => h.trim())
+        .filter(h => h !== ''); // Filter out empty column names
       
       setColumns(headers);
-      // Default time column to first column
-      setTimeColumn(headers[0]);
-      // Default value columns to all but first column
-      setValueColumns(headers.slice(1));
+      
+      // Default time column to first valid column
+      if (headers.length > 0) {
+        setTimeColumn(headers[0]);
+        // Default value columns to all but first column
+        setValueColumns(headers.slice(1));
+      }
       
       // Preview first few rows
       const previewRows = [];
@@ -38,7 +61,13 @@ const FileUpload: React.FC = () => {
           const rowData = lines[i].split(',').map(d => d.trim());
           const rowObj: any = {};
           headers.forEach((header, idx) => {
-            rowObj[header] = rowData[idx];
+            // Find the actual index in the raw data
+            const actualIdx = rawHeaders.findIndex(h => h.trim() === header);
+            if (actualIdx >= 0 && actualIdx < rowData.length) {
+              rowObj[header] = rowData[actualIdx];
+            } else {
+              rowObj[header] = ''; // Handle missing values
+            }
           });
           previewRows.push(rowObj);
         }
@@ -59,7 +88,7 @@ const FileUpload: React.FC = () => {
     const selected = e.target.value;
     setTimeColumn(selected);
     // Update value columns (exclude the time column)
-    setValueColumns(columns.filter(col => col !== selected));
+    setValueColumns(prev => prev.filter(col => col !== selected));
   };
 
   const handleValueColumnChange = (column: string) => {
@@ -79,6 +108,16 @@ const FileUpload: React.FC = () => {
       setError('Please select a file');
       return;
     }
+
+    if (!timeColumn) {
+      setError('Please select a time column');
+      return;
+    }
+
+    if (valueColumns.length === 0) {
+      setError('Please select at least one value column');
+      return;
+    }
     
     try {
       setLoading(true);
@@ -87,7 +126,11 @@ const FileUpload: React.FC = () => {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('time_column', timeColumn);
-      formData.append('value_columns', JSON.stringify(valueColumns));
+      
+      // Add each value column as a separate form field entry
+      valueColumns.forEach(col => {
+        formData.append('value_columns', col);
+      });
       
       const response = await axios.post('http://localhost:8000/api/upload-csv/', formData, {
         headers: {
@@ -99,6 +142,7 @@ const FileUpload: React.FC = () => {
       navigate(`/view/${analysisId}`);
       
     } catch (err: any) {
+      console.error('Upload error:', err);
       setError(err.response?.data?.detail || 'Failed to upload file');
     } finally {
       setLoading(false);

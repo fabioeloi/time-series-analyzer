@@ -41,7 +41,9 @@ const TimeSeriesViewer: React.FC = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
+        console.log(`Fetching data for analysis ID: ${analysisId}, domain: ${domain}`);
         const response = await axios.get(`http://localhost:8000/api/analyze/${analysisId}?domain=${domain}`);
+        console.log('Data fetched successfully:', response.data);
         setData(response.data);
         
         // Initialize selected columns
@@ -49,6 +51,7 @@ const TimeSeriesViewer: React.FC = () => {
           setSelectedColumns(response.data.value_columns);
         }
       } catch (err: any) {
+        console.error('Error fetching data:', err);
         setError(err.response?.data?.detail || 'Failed to fetch data');
       } finally {
         setLoading(false);
@@ -60,6 +63,7 @@ const TimeSeriesViewer: React.FC = () => {
   
   useEffect(() => {
     if (data && svgRef.current) {
+      console.log('Rendering chart with data:', data);
       if (domain === 'time') {
         renderTimeChart();
       } else {
@@ -71,6 +75,7 @@ const TimeSeriesViewer: React.FC = () => {
   const renderTimeChart = () => {
     if (!data || !svgRef.current) return;
     
+    console.log('Rendering time chart with data:', data);
     const svg = d3.select(svgRef.current);
     svg.selectAll("*").remove();
     
@@ -81,22 +86,21 @@ const TimeSeriesViewer: React.FC = () => {
     const g = svg.append("g")
       .attr("transform", `translate(${margin.left}, ${margin.top})`);
     
-    // Parse times based on selected scale
     let times = data.time_domain.time;
+    console.log('Parsed times:', times);
     if (timeScale !== 'auto') {
       const parseTime = getTimeParser(timeScale);
       times = times.map((t: string) => parseTime(t));
+      console.log('Times after applying time scale:', times);
     }
     
-    // X scale
     const xScale = d3.scaleTime()
       .domain(d3.extent(times, d => new Date(d)) as [Date, Date])
       .range([0, width]);
+    console.log('X scale domain:', xScale.domain());
     
-    // Y scale (depends on stacked or not)
     let yScale: d3.ScaleLinear<number, number>;
     if (stacked) {
-      // For stacked, find the max sum of all selected columns
       const stackedData = d3.stack()
         .keys(selectedColumns)
         .value((d: any, key) => d[key] || 0)(
@@ -108,37 +112,37 @@ const TimeSeriesViewer: React.FC = () => {
             return obj;
           })
         );
+      console.log('Stacked data:', stackedData);
       
       yScale = d3.scaleLinear()
         .domain([0, d3.max(stackedData[stackedData.length - 1], d => d[1]) || 0])
         .range([height, 0]);
+      console.log('Y scale domain (stacked):', yScale.domain());
     } else {
-      // For unstacked, find the min and max across all selected columns
       const allValues: number[] = [];
       selectedColumns.forEach(col => {
         allValues.push(...data.time_domain.series[col]);
       });
+      console.log('All values for unstacked:', allValues);
       
       yScale = d3.scaleLinear()
         .domain([d3.min(allValues) || 0, d3.max(allValues) || 0])
         .range([height, 0]);
+      console.log('Y scale domain (unstacked):', yScale.domain());
     }
     
-    // X axis
     g.append("g")
       .attr("transform", `translate(0, ${height})`)
       .call(d3.axisBottom(xScale));
     
-    // Y axis
     g.append("g")
       .call(d3.axisLeft(yScale));
     
-    // Color scale for multiple lines
     const colorScale = d3.scaleOrdinal(d3.schemeCategory10)
       .domain(selectedColumns);
+    console.log('Color scale domain:', colorScale.domain());
     
     if (stacked) {
-      // Render stacked area chart
       const stackedData = d3.stack()
         .keys(selectedColumns)
         .value((d: any, key) => d[key] || 0)(
@@ -150,6 +154,7 @@ const TimeSeriesViewer: React.FC = () => {
             return obj;
           })
         );
+      console.log('Stacked data for rendering:', stackedData);
       
       const area = d3.area<d3.SeriesPoint<any>>()
         .x((d, i) => xScale(new Date(times[i])))
@@ -164,15 +169,11 @@ const TimeSeriesViewer: React.FC = () => {
         .attr("d", area)
         .style("fill", (d, i) => colorScale(d.key as string))
         .style("opacity", 0.7);
-        
     } else {
-      // Render multiple line chart
-      // Line generator
       const line = d3.line<number>()
         .x((d, i) => xScale(new Date(times[i])))
         .y(d => yScale(d));
       
-      // Add line paths
       selectedColumns.forEach(column => {
         g.append("path")
           .datum(data.time_domain.series[column])
@@ -183,7 +184,6 @@ const TimeSeriesViewer: React.FC = () => {
       });
     }
     
-    // Add legend
     const legend = g.append("g")
       .attr("font-family", "sans-serif")
       .attr("font-size", 10)
@@ -219,16 +219,13 @@ const TimeSeriesViewer: React.FC = () => {
     const g = svg.append("g")
       .attr("transform", `translate(${margin.left}, ${margin.top})`);
     
-    // Set up scales for each column
     selectedColumns.forEach((column, index) => {
       const frequencies = data.frequency_domain!.frequencies[column];
       const amplitudes = data.frequency_domain!.amplitudes[column];
       
-      // Define chart position (stacked vertically)
       const chartHeight = height / selectedColumns.length;
       const chartTop = index * chartHeight;
       
-      // X and Y scales
       const xScale = d3.scaleLinear()
         .domain([0, d3.max(frequencies) || 0])
         .range([0, width]);
@@ -237,7 +234,6 @@ const TimeSeriesViewer: React.FC = () => {
         .domain([0, d3.max(amplitudes) || 0])
         .range([chartHeight - 10, 0]);
       
-      // X axis
       g.append("g")
         .attr("transform", `translate(0, ${chartTop + chartHeight - 10})`)
         .call(d3.axisBottom(xScale).ticks(5))
@@ -247,7 +243,6 @@ const TimeSeriesViewer: React.FC = () => {
         .attr("fill", "#000")
         .text("Frequency");
       
-      // Y axis
       g.append("g")
         .attr("transform", `translate(0, ${chartTop})`)
         .call(d3.axisLeft(yScale).ticks(3))
@@ -258,7 +253,6 @@ const TimeSeriesViewer: React.FC = () => {
         .attr("fill", "#000")
         .text("Amplitude");
       
-      // Column label
       g.append("text")
         .attr("x", width - 20)
         .attr("y", chartTop + 15)
@@ -267,12 +261,10 @@ const TimeSeriesViewer: React.FC = () => {
         .attr("font-weight", "bold")
         .text(column);
       
-      // Line for frequency spectrum
       const line = d3.line<number>()
         .x((d, i) => xScale(frequencies[i]))
         .y((d) => yScale(d) + chartTop);
       
-      // Add line path
       g.append("path")
         .datum(amplitudes)
         .attr("fill", "none")
@@ -343,25 +335,20 @@ const TimeSeriesViewer: React.FC = () => {
   const handleExport = async () => {
     try {
       if (exportFormat === 'csv') {
-        // For CSV, we need to trigger a download
         window.open(`http://localhost:8000/api/export/${analysisId}?format=csv&domain=${domain}`, '_blank');
       } else {
-        // For JSON, we can display the data or trigger a download
         const response = await axios.get(`http://localhost:8000/api/export/${analysisId}?format=json&domain=${domain}`);
         
-        // Create a Blob with the JSON data
         const jsonData = JSON.stringify(response.data, null, 2);
         const blob = new Blob([jsonData], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         
-        // Create a link and trigger download
         const link = document.createElement('a');
         link.href = url;
         link.download = `time_series_analysis_${analysisId}_${domain}.json`;
         document.body.appendChild(link);
         link.click();
         
-        // Clean up
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
       }

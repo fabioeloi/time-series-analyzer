@@ -19,13 +19,73 @@ class TimeSeries:
         # Generate a unique ID
         new_id = str(uuid.uuid4())
         
+        # Validate that we don't have empty column names
+        if "" in data.columns:
+            # Remove or rename empty columns
+            renamed_cols = {col: f"Column_{i}" if col == "" else col for i, col in enumerate(data.columns)}
+            data = data.rename(columns=renamed_cols)
+            
         # If time_column is not specified, attempt to use the first column
         if time_column is None:
             time_column = data.columns[0]
+        
+        # Handle empty time column name
+        if time_column == "":
+            raise ValueError(f"Time column name cannot be empty. Available columns: {', '.join(data.columns)}")
             
-        # If value_columns are not specified, use all columns except the time column
+        # Ensure time column exists
+        if time_column not in data.columns:
+            raise ValueError(f"Time column '{time_column}' not found in data. Available columns: {', '.join(data.columns)}")
+            
+        # Try to convert time column to datetime with flexible parsing
+        try:
+            data[time_column] = pd.to_datetime(data[time_column], infer_datetime_format=True, errors='coerce')
+            if data[time_column].isna().all():
+                raise ValueError(f"Could not parse any datetime values from column '{time_column}'")
+        except Exception as e:
+            raise ValueError(f"Error parsing time column '{time_column}': {str(e)}")
+
+        # Ensure no NaT values in the time column
+        if data[time_column].isna().any():
+            raise ValueError(f"Time column '{time_column}' contains NaT values after parsing")
+
+        # If value_columns are not specified, use all numeric columns except the time column
         if value_columns is None:
-            value_columns = [col for col in data.columns if col != time_column]
+            value_columns = [col for col in data.select_dtypes(include=[np.number]).columns if col != time_column]
+            if not value_columns:
+                # Try to convert string columns to numeric
+                for col in data.columns:
+                    if col != time_column:
+                        try:
+                            data[col] = pd.to_numeric(data[col], errors='coerce')
+                            if not data[col].isna().all():
+                                value_columns.append(col)
+                        except:
+                            continue
+        
+        # Filter out any empty column names
+        value_columns = [col for col in value_columns if col != ""]
+                            
+        # Validate value columns and convert to numeric where possible
+        valid_value_columns = []
+        for col in value_columns:
+            if col not in data.columns:
+                raise ValueError(f"Column '{col}' not found in data. Available columns: {', '.join(data.columns)}")
+            
+            # Try to convert to numeric if not already
+            if not np.issubdtype(data[col].dtype, np.number):
+                try:
+                    data[col] = pd.to_numeric(data[col], errors='coerce')
+                except:
+                    raise ValueError(f"Column '{col}' could not be converted to numeric data")
+                    
+            if not data[col].isna().all():
+                valid_value_columns.append(col)
+                
+        if not valid_value_columns:
+            raise ValueError("No valid numeric columns found for analysis")
+            
+        value_columns = valid_value_columns
             
         return cls(
             id=new_id,
@@ -37,12 +97,13 @@ class TimeSeries:
     def get_time_domain_data(self) -> Dict[str, Any]:
         """Get data in time domain format"""
         result = {
-            "time": self.data[self.time_column].tolist(),
+            "time": pd.to_datetime(self.data[self.time_column]).dt.strftime('%Y-%m-%d %H:%M:%S').tolist(),
             "series": {}
         }
         
         for col in self.value_columns:
-            result["series"][col] = self.data[col].tolist()
+            # Handle NaN values by replacing them with None
+            result["series"][col] = [None if pd.isna(x) else float(x) for x in self.data[col]]
             
         return result
     
@@ -53,25 +114,32 @@ class TimeSeries:
             "amplitudes": {}
         }
         
-        # Calculate sample spacing from time data
-        time_values = pd.to_numeric(self.data[self.time_column])
-        sample_spacing = (time_values.iloc[-1] - time_values.iloc[0]) / (len(time_values) - 1)
-        
-        for col in self.value_columns:
-            # Perform FFT
-            values = self.data[col].to_numpy()
-            # Remove NaN values
-            values = values[~np.isnan(values)]
+        try:
+            # Calculate sample spacing from time data
+            time_values = pd.to_datetime(self.data[self.time_column]).astype(np.int64) // 10**9  # Convert to Unix timestamp
+            sample_spacing = (time_values.iloc[-1] - time_values.iloc[0]) / (len(time_values) - 1)
             
-            # Apply FFT
-            fft_result = np.fft.fft(values)
-            # Get the frequencies
-            n = len(values)
-            freqs = np.fft.fftfreq(n, sample_spacing)
-            
-            # Store positive frequencies and their magnitudes
-            positive_mask = freqs > 0
-            result["frequencies"][col] = freqs[positive_mask].tolist()
-            result["amplitudes"][col] = np.abs(fft_result[positive_mask]).tolist()
-            
-        return result
+            for col in self.value_columns:
+                # Perform FFT
+                values = self.data[col].to_numpy()
+                # Remove NaN values and interpolate
+                mask = ~np.isnan(values)
+                if not mask.all():
+                    # If there are NaN values, interpolate them
+                    x = np.arange(len(values))
+                    values = np.interp(x, x[mask], values[mask])
+                
+                # Apply FFT
+                fft_result = np.fft.fft(values)
+                # Get the frequencies
+                n = len(values)
+                freqs = np.fft.fftfreq(n, sample_spacing)
+                
+                # Store positive frequencies and their magnitudes
+                positive_mask = freqs > 0
+                result["frequencies"][col] = freqs[positive_mask].tolist()
+                result["amplitudes"][col] = np.abs(fft_result[positive_mask]).tolist()
+                
+            return result
+        except Exception as e:
+            raise ValueError(f"Error calculating frequency domain data: {str(e)}")
