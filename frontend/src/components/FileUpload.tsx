@@ -12,6 +12,7 @@ const FileUpload: React.FC = () => {
   const [valueColumns, setValueColumns] = useState<string[]>([]);
   const [previewData, setPreviewData] = useState<any[]>([]);
   const [originalHeaders, setOriginalHeaders] = useState<string[]>([]);
+  const [allSelected, setAllSelected] = useState<boolean>(false);
   
   const navigate = useNavigate();
 
@@ -101,6 +102,15 @@ const FileUpload: React.FC = () => {
     });
   };
 
+  const handleSelectAll = () => {
+    if (allSelected) {
+      setValueColumns([]);
+    } else {
+      setValueColumns([...columns.filter(col => col !== timeColumn)]);
+    }
+    setAllSelected(!allSelected);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -181,6 +191,9 @@ const FileUpload: React.FC = () => {
               
               <div className="form-group">
                 <label>Value Columns:</label>
+                <button className="select-all-button" onClick={handleSelectAll}>
+                  {allSelected ? 'Deselect All' : 'Select All'}
+                </button>
                 <div className="checkbox-group">
                   {columns
                     .filter(col => col !== timeColumn)
