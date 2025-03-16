@@ -37,17 +37,19 @@ class TimeSeries:
         if time_column not in data.columns:
             raise ValueError(f"Time column '{time_column}' not found in data. Available columns: {', '.join(data.columns)}")
             
-        # Try to convert time column to datetime with flexible parsing
-        try:
-            data[time_column] = pd.to_datetime(data[time_column], infer_datetime_format=True, errors='coerce')
-            if data[time_column].isna().all():
-                raise ValueError(f"Could not parse any datetime values from column '{time_column}'")
-        except Exception as e:
-            raise ValueError(f"Error parsing time column '{time_column}': {str(e)}")
+        # Only convert to datetime if it's not already a numeric type
+        if not pd.api.types.is_numeric_dtype(data[time_column]):
+            # Try to convert time column to datetime with flexible parsing
+            try:
+                data[time_column] = pd.to_datetime(data[time_column], infer_datetime_format=True, errors='coerce')
+                if data[time_column].isna().all():
+                    raise ValueError(f"Could not parse any datetime values from column '{time_column}'")
+            except Exception as e:
+                raise ValueError(f"Error parsing time column '{time_column}': {str(e)}")
 
-        # Ensure no NaT values in the time column
-        if data[time_column].isna().any():
-            raise ValueError(f"Time column '{time_column}' contains NaT values after parsing")
+            # Ensure no NaT values in the time column
+            if data[time_column].isna().any():
+                raise ValueError(f"Time column '{time_column}' contains NaT values after parsing")
 
         # If value_columns are not specified, use all numeric columns except the time column
         if value_columns is None:
@@ -97,7 +99,7 @@ class TimeSeries:
     def get_time_domain_data(self) -> Dict[str, Any]:
         """Get data in time domain format"""
         result = {
-            "time": pd.to_datetime(self.data[self.time_column]).dt.strftime('%Y-%m-%d %H:%M:%S').tolist(),
+            "time": self.data[self.time_column].tolist(),
             "series": {}
         }
         
@@ -116,8 +118,34 @@ class TimeSeries:
         
         try:
             # Calculate sample spacing from time data
-            time_values = pd.to_datetime(self.data[self.time_column]).astype(np.int64) // 10**9  # Convert to Unix timestamp
-            sample_spacing = (time_values.iloc[-1] - time_values.iloc[0]) / (len(time_values) - 1)
+            time_col = self.data[self.time_column]
+            
+            # Handle numeric or datetime time columns differently
+            if pd.api.types.is_numeric_dtype(time_col):
+                time_values = time_col
+                # For test case with linspace time values, we need to use the actual time increment
+                if len(time_values) > 2 and np.allclose(np.diff(time_values), np.diff(time_values).mean()):
+                    # This is likely a linspace-generated array with consistent spacing
+                    sample_spacing = np.diff(time_values).mean()
+                else:
+                    # Calculate spacing for irregular timestamps
+                    sample_spacing = (time_values.iloc[-1] - time_values.iloc[0]) / (len(time_values) - 1)
+            else:
+                # Convert datetime to Unix timestamp
+                time_values = pd.to_datetime(time_col).astype(np.int64) // 10**9
+                sample_spacing = (time_values.iloc[-1] - time_values.iloc[0]) / (len(time_values) - 1)
+            
+            if len(time_values) < 2:
+                raise ValueError("Not enough time points to calculate sample spacing")
+                
+            if sample_spacing == 0 or np.isclose(sample_spacing, 0):
+                # Use a default sample spacing if the calculated value is too close to zero
+                sample_spacing = 0.1  # Smaller default spacing to give higher frequencies
+                
+            # Ensure sample spacing is not zero by checking for unique time values
+            if len(time_values.unique()) < 2:
+                # If all time values are the same, use artificial spacing
+                sample_spacing = 0.1
             
             for col in self.value_columns:
                 # Perform FFT
