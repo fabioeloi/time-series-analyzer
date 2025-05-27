@@ -16,9 +16,11 @@ Before you begin, make sure you have the following installed:
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/fabioeloi/time-series-analyzer.git
-cd time-series-analyzer
+git clone https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git
+cd YOUR_REPO_NAME
 ```
+
+> **Note**: Replace `YOUR_USERNAME` with your GitHub username/organization and `YOUR_REPO_NAME` with your repository name. If you used the included [`init_repo.sh`](../init_repo.sh) script to set up your repository, these values would have been configured during setup.
 
 ### 2. Local Development with Docker
 

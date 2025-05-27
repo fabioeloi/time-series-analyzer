@@ -9,6 +9,29 @@ For local development, the base URL is:
 http://localhost:8000
 ```
 
+## Authentication
+
+Most API endpoints require authentication using an API key. The API key must be provided in the `X-API-Key` header.
+
+### How to Authenticate
+
+Include the API key in your request headers:
+```http
+X-API-Key: your-api-key-here
+```
+
+### Example with curl:
+```bash
+curl -H "X-API-Key: your-api-key-here" http://localhost:8000/api/health
+```
+
+### Unauthenticated Endpoints
+
+The following endpoints do not require authentication:
+- `GET /api/diagnostic` - Diagnostic information
+
+All other endpoints require a valid API key.
+
 ## Endpoints
 
 ### Health Check
@@ -17,10 +40,45 @@ http://localhost:8000
 
 Check if the API is running properly.
 
+**Authentication**: Required
+
+**Headers**:
+```http
+X-API-Key: your-api-key-here
+```
+
 **Response**:
 ```json
 {
   "status": "healthy"
+}
+```
+
+### Diagnostic
+
+**GET /api/diagnostic**
+
+Get diagnostic information about the system and available analyses. This endpoint does not require authentication.
+
+**Authentication**: Not required
+
+**Parameters**:
+- `analysis_id`: UUID of a specific analysis to check (optional)
+
+**Response**:
+```json
+{
+  "storage_info": {
+    "storage_path": "./backend/data",
+    "storage_file": "./backend/data/time_series_data.json",
+    "storage_file_exists": true,
+    "storage_file_size": 1024,
+    "backup_file": "./backend/data/time_series_data.json.backup",
+    "backup_file_exists": true,
+    "data_directory_exists": true
+  },
+  "available_analyses": ["uuid1", "uuid2", "uuid3"],
+  "analysis_count": 3
 }
 ```
 
@@ -29,6 +87,13 @@ Check if the API is running properly.
 **POST /api/upload-csv/**
 
 Upload a CSV file containing time series data for analysis.
+
+**Authentication**: Required
+
+**Headers**:
+```http
+X-API-Key: your-api-key-here
+```
 
 **Parameters**:
 - `file`: The CSV file to upload (required)
@@ -58,6 +123,13 @@ Upload a CSV file containing time series data for analysis.
 **GET /api/analyze/{analysis_id}**
 
 Retrieve analysis results for a specific analysis ID.
+
+**Authentication**: Required
+
+**Headers**:
+```http
+X-API-Key: your-api-key-here
+```
 
 **Parameters**:
 - `analysis_id`: UUID of the analysis (path parameter, required)
@@ -93,6 +165,13 @@ Same structure as the upload response, but may include frequency_domain data if 
 
 Export analysis data in various formats.
 
+**Authentication**: Required
+
+**Headers**:
+```http
+X-API-Key: your-api-key-here
+```
+
 **Parameters**:
 - `analysis_id`: UUID of the analysis (path parameter, required)
 - `format`: Export format, either "csv" or "json" (query parameter, default: "csv")
@@ -110,6 +189,20 @@ All endpoints may return error responses with appropriate HTTP status codes:
 ```json
 {
   "detail": "Error description"
+}
+```
+
+**401 Unauthorized** (Authentication Required):
+```json
+{
+  "detail": "API key is required. Please provide a valid X-API-Key header."
+}
+```
+
+**401 Unauthorized** (Invalid API Key):
+```json
+{
+  "detail": "Invalid API key. Please provide a valid X-API-Key header."
 }
 ```
 

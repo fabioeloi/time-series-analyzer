@@ -12,14 +12,15 @@ sys.path.append(str(Path(__file__).parent.parent.parent / "backend"))
 from application.services.time_series_service import TimeSeriesService
 from interfaces.dto.time_series_dto import TimeSeriesRequestDTO
 from domain.models.time_series import TimeSeries
+from domain.repositories.time_series_repository_interface import TimeSeriesRepositoryInterface
 
 class TestTimeSeriesService:
     
     def setup_method(self):
         """Set up test fixtures for each test method"""
-        self.service = TimeSeriesService()
-        # Mock the repository to avoid actual storage operations
-        self.service.repository = MagicMock()
+        # Create a mock repository that implements the interface
+        self.mock_repository = MagicMock(spec=TimeSeriesRepositoryInterface)
+        self.service = TimeSeriesService(self.mock_repository)
         
     def test_process_time_series(self):
         """Test processing a time series from uploaded data"""
@@ -41,7 +42,7 @@ class TestTimeSeriesService:
         response = self.service.process_time_series(request)
         
         # Verify the service saved the time series in the repository
-        self.service.repository.save.assert_called_once()
+        self.mock_repository.save.assert_called_once()
         
         # Verify the response structure
         assert response.time_column == 'date'
@@ -75,13 +76,13 @@ class TestTimeSeriesService:
         }
         
         # Mock the repository to return our mock time series
-        self.service.repository.find_by_id.return_value = mock_ts
+        self.mock_repository.find_by_id.return_value = mock_ts
         
         # Get analysis result in time domain
         response = self.service.get_analysis_result("test-id", "time")
         
         # Verify the repository was called correctly
-        self.service.repository.find_by_id.assert_called_once_with("test-id")
+        self.mock_repository.find_by_id.assert_called_once_with("test-id")
         
         # Verify the response contains time domain data but not frequency domain data
         assert response.time_domain is not None
@@ -119,13 +120,13 @@ class TestTimeSeriesService:
         }
         
         # Mock the repository to return our mock time series
-        self.service.repository.find_by_id.return_value = mock_ts
+        self.mock_repository.find_by_id.return_value = mock_ts
         
         # Get analysis result in frequency domain
         response = self.service.get_analysis_result("test-id", "frequency")
         
         # Verify the repository was called correctly
-        self.service.repository.find_by_id.assert_called_once_with("test-id")
+        self.mock_repository.find_by_id.assert_called_once_with("test-id")
         
         # Verify the response contains both time domain and frequency domain data
         assert response.time_domain is not None
@@ -137,7 +138,7 @@ class TestTimeSeriesService:
     def test_get_analysis_result_not_found(self):
         """Test handling of a non-existent analysis ID"""
         # Mock the repository to return None, simulating a non-existent ID
-        self.service.repository.find_by_id.return_value = None
+        self.mock_repository.find_by_id.return_value = None
         
         # Check that the service raises an exception for a non-existent ID
         with pytest.raises(ValueError, match="No time series found with ID non-existent-id"):

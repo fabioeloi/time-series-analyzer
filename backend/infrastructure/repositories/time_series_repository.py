@@ -4,8 +4,9 @@ import pickle
 import logging
 import json
 from domain.models.time_series import TimeSeries
+from domain.repositories.time_series_repository_interface import TimeSeriesRepositoryInterface
 
-class TimeSeriesRepository:
+class TimeSeriesRepository(TimeSeriesRepositoryInterface):
     """Repository for storing and retrieving time series data"""
     
     def __init__(self):
@@ -36,9 +37,9 @@ class TimeSeriesRepository:
             for key, ts in self._storage.items():
                 backup_data[key] = {
                     "id": ts.id,
-                    "name": ts.name,
-                    "created_at": ts.created_at.isoformat() if ts.created_at else None,
-                    "num_columns": len(ts.columns) if ts.columns else 0,
+                    "time_column": ts.time_column,
+                    "value_columns": ts.value_columns,
+                    "num_columns": len(ts.data.columns) if ts.data is not None else 0,
                     "num_rows": len(ts.data) if ts.data is not None else 0
                 }
             
@@ -82,7 +83,7 @@ class TimeSeriesRepository:
             self.logger.warning(f"Time series with ID: {id} not found")
         return result
         
-    def get_all(self) -> List[TimeSeries]:
+    def find_all(self) -> List[TimeSeries]:
         """Get all stored time series"""
         self.logger.info(f"Returning all {len(self._storage)} time series analyses")
         return list(self._storage.values())
@@ -96,6 +97,10 @@ class TimeSeriesRepository:
         else:
             self.logger.warning(f"Cannot delete: time series with ID: {id} not found")
             
+    def exists(self, id: str) -> bool:
+        """Check if a time series exists with the given ID"""
+        return id in self._storage
+    
     def list_available_ids(self) -> List[str]:
         """List all available analysis IDs"""
         return list(self._storage.keys())

@@ -61,9 +61,11 @@ This project follows Domain-Driven Design (DDD) principles and is built using:
 
 1. Clone the repository:
    ```
-   git clone https://github.com/fabioeloi/time-series-analyzer.git
-   cd time-series-analyzer
+   git clone https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git
+   cd YOUR_REPO_NAME
    ```
+   
+   > **Note**: Replace `YOUR_USERNAME` with your GitHub username/organization and `YOUR_REPO_NAME` with your repository name. If you're setting up a new instance of this project, you can use the included [`init_repo.sh`](init_repo.sh) script to automate the repository creation and setup process.
 
 2. Start the development environment:
    ```

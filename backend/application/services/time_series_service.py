@@ -3,13 +3,13 @@ import pandas as pd
 
 from domain.models.time_series import TimeSeries
 from interfaces.dto.time_series_dto import TimeSeriesRequestDTO, TimeSeriesResponseDTO
-from infrastructure.repositories.time_series_repository import TimeSeriesRepository
+from domain.repositories.time_series_repository_interface import TimeSeriesRepositoryInterface
 
 class TimeSeriesService:
     """Application service for time series operations"""
     
-    def __init__(self):
-        self.repository = TimeSeriesRepository()
+    def __init__(self, repository: TimeSeriesRepositoryInterface):
+        self.repository = repository
         
     def process_time_series(self, request: TimeSeriesRequestDTO) -> TimeSeriesResponseDTO:
         """Process time series data from uploaded CSV"""

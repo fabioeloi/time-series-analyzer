@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 import pandas as pd
 import numpy as np
@@ -12,7 +12,9 @@ import os
 
 from domain.models.time_series import TimeSeries
 from application.services.time_series_service import TimeSeriesService
+from infrastructure.repositories.time_series_repository import TimeSeriesRepository
 from interfaces.dto.time_series_dto import TimeSeriesRequestDTO, TimeSeriesResponseDTO
+from infrastructure.auth.api_key_auth import get_api_key_dependency
 
 app = FastAPI(title="Time Series Analyzer API")
 
@@ -25,12 +27,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-time_series_service = TimeSeriesService()
+# Dependency injection - create repository and inject into service
+time_series_repository = TimeSeriesRepository()
+time_series_service = TimeSeriesService(time_series_repository)
 
 @app.post("/api/upload-csv/", response_model=TimeSeriesResponseDTO)
-async def upload_csv(file: UploadFile = File(...), 
+async def upload_csv(file: UploadFile = File(...),
                      time_column: Optional[str] = None,
-                     value_columns: Optional[List[str]] = None):
+                     value_columns: Optional[List[str]] = None,
+                     api_key: str = get_api_key_dependency()):
     """
     Upload a CSV file for time series analysis.
     """
@@ -95,7 +100,7 @@ async def upload_csv(file: UploadFile = File(...),
         raise HTTPException(status_code=500, detail=f"Error processing CSV: {str(e)}")
 
 @app.get("/api/analyze/{analysis_id}", response_model=TimeSeriesResponseDTO)
-async def get_analysis(analysis_id: str, domain: str = "time"):
+async def get_analysis(analysis_id: str, domain: str = "time", api_key: str = get_api_key_dependency()):
     """
     Retrieve time series analysis results.
     Domain can be 'time' or 'frequency'.
@@ -146,10 +151,9 @@ async def diagnostic(analysis_id: Optional[str] = None):
             result["analysis_found"] = True
             result["analysis_details"] = {
                 "id": analysis.id,
-                "name": analysis.name,
-                "created_at": analysis.created_at.isoformat() if analysis.created_at else None,
                 "time_column": analysis.time_column,
-                "value_columns": analysis.columns,
+                "value_columns": analysis.value_columns,
+                "data_columns": list(analysis.data.columns) if analysis.data is not None else [],
                 "data_length": len(analysis.data) if analysis.data is not None else 0
             }
         else:
@@ -159,7 +163,7 @@ async def diagnostic(analysis_id: Optional[str] = None):
     return JSONResponse(content=result)
 
 @app.get("/api/export/{analysis_id}")
-async def export_analysis(analysis_id: str, format: str = "csv", domain: str = "time"):
+async def export_analysis(analysis_id: str, format: str = "csv", domain: str = "time", api_key: str = get_api_key_dependency()):
     """
     Export time series analysis data in various formats.
     Format can be 'csv' or 'json'.
@@ -224,7 +228,7 @@ async def export_analysis(analysis_id: str, format: str = "csv", domain: str = "
         raise HTTPException(status_code=404, detail=f"Export failed: {str(e)}")
 
 @app.get("/api/health")
-async def health_check():
+async def health_check(api_key: str = get_api_key_dependency()):
     return {"status": "healthy"}
 
 if __name__ == "__main__":
