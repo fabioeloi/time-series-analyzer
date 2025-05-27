@@ -31,6 +31,7 @@ docker-compose up
 ```
 
 This will:
+- Start TimescaleDB (PostgreSQL with TimescaleDB extension) on port 5432
 - Start the Python FastAPI backend on http://localhost:8000
 - Start the React frontend on http://localhost:3000
 - Set up live-reloading for both services
@@ -65,6 +66,96 @@ npm install
 # Start development server
 npm start
 ```
+
+#### Redis Setup
+
+If you plan to use caching, you'll need a running Redis instance. The easiest way to run Redis locally is via Docker:
+
+```bash
+docker run --name time-series-redis -p 6379:6379 -d redis/redis-stack-server:latest
+```
+
+To stop and remove the Redis container:
+
+```bash
+docker stop time-series-redis
+docker rm time-series-redis
+```
+
+## Database Setup
+
+The project uses PostgreSQL with the TimescaleDB extension for efficient time-series data storage.
+
+### Environment Variables
+
+Configure the following database environment variables in your `.env` file:
+
+```bash
+# Database Configuration
+DATABASE_URL=postgresql+asyncpg://postgres:password@localhost:5432/time_series_db
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=password
+POSTGRES_DB=time_series_db
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+DATABASE_POOL_SIZE=5
+DATABASE_MAX_OVERFLOW=10
+DATABASE_POOL_RECYCLE=3600
+```
+
+### Redis Environment Variables
+
+For caching with Redis, configure the following environment variables in your `.env` file:
+
+```bash
+# Redis Configuration
+REDIS_ENABLED=true
+REDIS_URL=redis://localhost:6379/0
+REDIS_TTL_SECONDS=300
+```
+
+*   `REDIS_ENABLED`: Set to `true` to enable Redis caching.
+*   `REDIS_URL`: The connection URL for your Redis instance.
+*   `REDIS_TTL_SECONDS`: The default Time-To-Live (TTL) for cached entries in seconds.
+
+### Database Migrations
+
+The project uses Alembic for database schema migrations:
+
+```bash
+cd backend
+
+# Run migrations to set up the database schema
+python -m alembic upgrade head
+
+# Create a new migration (if needed)
+python -m alembic revision --autogenerate -m "Description of changes"
+
+# Downgrade migrations (if needed)
+python -m alembic downgrade -1
+```
+
+### Manual Database Setup
+
+If you need to set up PostgreSQL with TimescaleDB manually:
+
+1. **Install PostgreSQL**: Follow the official PostgreSQL installation guide for your OS
+2. **Install TimescaleDB**: Follow the TimescaleDB installation guide
+3. **Create Database**:
+   ```sql
+   CREATE DATABASE time_series_db;
+   CREATE EXTENSION IF NOT EXISTS timescaledb;
+   ```
+4. **Run Migrations**: Use Alembic as described above
+
+### Database Schema
+
+The database consists of two main tables:
+
+- `time_series_metadata`: Stores metadata about each time series (ID, columns, timestamps)
+- `time_series_data_points`: TimescaleDB hypertable storing the actual time-series data points
+
+The hypertable is optimized for time-series queries and includes automatic compression for data older than 1 day.
 
 ## Project Structure
 
