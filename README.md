@@ -47,6 +47,23 @@ This project follows Domain-Driven Design (DDD) principles and is built using:
 └── docs                   # Documentation
 ```
 
+## Current Project Status
+
+🟢 **All Services Operational** - The Docker backend startup issue has been successfully resolved and all containers are working properly.
+
+### Service Status
+- ✅ **TimescaleDB**: Running on port 5432 with time-series optimizations
+- ✅ **Redis**: Running on port 6379 for caching
+- ✅ **Backend**: Running on port 8000 with authentication enabled
+- ✅ **Frontend**: Running on port 3000 with API connectivity
+
+### Recent Fixes
+- **Docker Backend Startup**: Resolved missing API_KEY environment variable issue
+- **Environment Configuration**: Added comprehensive `.env` file for all services
+- **Container Dependencies**: Updated Docker Compose with proper service dependencies and health checks
+
+For detailed information about the recent Docker fixes, see [Docker Startup Fix Summary](docs/docker_startup_fix_summary.md).
+
 ## Getting Started
 
 ### Prerequisites
@@ -67,12 +84,20 @@ This project follows Domain-Driven Design (DDD) principles and is built using:
    
    > **Note**: Replace `YOUR_USERNAME` with your GitHub username/organization and `YOUR_REPO_NAME` with your repository name. If you're setting up a new instance of this project, you can use the included [`init_repo.sh`](init_repo.sh) script to automate the repository creation and setup process.
 
-2. Start the development environment:
+2. **Set up environment configuration**:
+   ```bash
+   # Copy the example environment file and configure it
+   cp .env.example .env
+   ```
+   
+   > **Important**: The `.env` file is already configured with development defaults. For production deployment, make sure to update the `API_KEY` and other security-sensitive variables.
+
+3. Start the development environment:
    ```
    docker-compose up
    ```
 
-3. Access the application:
+4. Access the application:
    - Frontend: http://localhost:3000
    - Backend API: http://localhost:8000
    - API Documentation: http://localhost:8000/docs
@@ -93,7 +118,91 @@ npm test
 
 ## Deployment
 
-The project is configured for automatic deployment via GitHub Actions. When code is pushed to the main branch:
+### AWS Infrastructure Deployment
+
+The project includes complete AWS infrastructure provisioning using Terraform. The infrastructure supports production-ready deployment with proper security, scalability, and monitoring.
+
+#### Quick Start with Deployment Script
+
+For easy deployment, use the provided deployment script:
+
+```bash
+cd infrastructure
+./deploy.sh
+```
+
+This script will:
+1. Check prerequisites (Terraform, AWS CLI, Docker)
+2. Validate Terraform configuration
+3. Create infrastructure resources
+4. Build and push container images
+5. Deploy the application to ECS
+
+#### Manual Deployment Steps
+
+1. **Configure AWS credentials:**
+   ```bash
+   aws configure
+   ```
+
+2. **Set up Terraform variables:**
+   ```bash
+   cd infrastructure
+   cp terraform.tfvars.example terraform.tfvars
+   # Edit terraform.tfvars with your values
+   ```
+
+3. **Deploy infrastructure:**
+   ```bash
+   terraform init
+   terraform plan
+   terraform apply
+   ```
+
+4. **Build and push images:**
+   ```bash
+   # Get ECR login
+   aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin $(terraform output -raw backend_ecr_url | cut -d'/' -f1)
+   
+   # Build and push backend
+   cd ../backend
+   docker build -t time-series-analyzer-backend .
+   docker tag time-series-analyzer-backend:latest $(cd ../infrastructure && terraform output -raw backend_ecr_url):latest
+   docker push $(cd ../infrastructure && terraform output -raw backend_ecr_url):latest
+   ```
+
+#### Infrastructure Components
+
+The Terraform configuration creates:
+
+- **VPC with public/private subnets** - Secure network architecture
+- **RDS PostgreSQL** - Managed database with TimescaleDB support
+- **ECS Fargate** - Containerized application deployment
+- **Application Load Balancer** - High availability and traffic distribution
+- **ECR repositories** - Container image storage
+- **Secrets Manager** - Secure credential storage
+- **CloudWatch** - Logging and monitoring
+- **IAM roles** - Least-privilege security
+
+#### Post-Deployment
+
+After deployment, access your application at:
+```bash
+# Get the application URL
+cd infrastructure
+echo "http://$(terraform output -raw load_balancer_dns)"
+```
+
+API endpoints:
+- Health check: `http://<load-balancer-dns>/api/health`
+- CSV upload: `http://<load-balancer-dns>/api/upload-csv/`
+- API docs: `http://<load-balancer-dns>/docs`
+
+For detailed infrastructure documentation, see [`infrastructure/README.md`](infrastructure/README.md).
+
+### Automated CI/CD Deployment
+
+The project is also configured for automatic deployment via GitHub Actions. When code is pushed to the main branch:
 
 1. Tests are run
 2. Docker images are built and pushed to AWS ECR

@@ -22,9 +22,27 @@ cd YOUR_REPO_NAME
 
 > **Note**: Replace `YOUR_USERNAME` with your GitHub username/organization and `YOUR_REPO_NAME` with your repository name. If you used the included [`init_repo.sh`](../init_repo.sh) script to set up your repository, these values would have been configured during setup.
 
-### 2. Local Development with Docker
+### 2. Environment Configuration
 
-The easiest way to start development is using Docker Compose, which sets up both frontend and backend services:
+Before starting the application, you need to set up the environment configuration:
+
+```bash
+# Copy the example environment file
+cp .env.example .env
+```
+
+The `.env` file contains all necessary environment variables with development defaults. Key variables include:
+
+- `API_KEY`: Required for backend authentication (default: `dev-api-key-12345-change-in-production`)
+- `DATABASE_URL`: PostgreSQL connection string for TimescaleDB
+- `REDIS_URL`: Redis connection string for caching
+- Environment-specific settings for development/production
+
+> **Important**: The provided `.env` file is already configured with development defaults that work with Docker Compose. Only modify these values if you need different settings or are deploying to production.
+
+### 3. Local Development with Docker
+
+The easiest way to start development is using Docker Compose, which sets up all services:
 
 ```bash
 docker-compose up
@@ -32,13 +50,21 @@ docker-compose up
 
 This will:
 - Start TimescaleDB (PostgreSQL with TimescaleDB extension) on port 5432
+- Start Redis for caching on port 6379
 - Start the Python FastAPI backend on http://localhost:8000
 - Start the React frontend on http://localhost:3000
 - Set up live-reloading for both services
 
 The API documentation will be available at http://localhost:8000/docs
 
-### 3. Manual Development Setup
+#### Service Dependencies
+The services start in the correct order with health checks:
+1. **TimescaleDB** starts first and waits for PostgreSQL to be ready
+2. **Redis** starts and waits for Redis server to be ready
+3. **Backend** starts after database and Redis are healthy
+4. **Frontend** starts after backend is healthy
+
+### 4. Manual Development Setup
 
 #### Backend Setup
 
@@ -86,37 +112,54 @@ docker rm time-series-redis
 
 The project uses PostgreSQL with the TimescaleDB extension for efficient time-series data storage.
 
-### Environment Variables
+### Environment Variables Configuration
 
-Configure the following database environment variables in your `.env` file:
+The `.env` file contains all necessary environment variables with development defaults. Here are the key sections:
 
+#### Authentication Configuration
 ```bash
-# Database Configuration
-DATABASE_URL=postgresql+asyncpg://postgres:password@localhost:5432/time_series_db
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=password
-POSTGRES_DB=time_series_db
-POSTGRES_HOST=localhost
-POSTGRES_PORT=5432
+# Required for backend API authentication
+API_KEY=dev-api-key-12345-change-in-production
+```
+
+#### Database Configuration
+```bash
+# PostgreSQL with TimescaleDB Configuration
+DATABASE_URL=postgresql+asyncpg://postgres:password@timescaledb:5432/time_series_db
 DATABASE_POOL_SIZE=5
 DATABASE_MAX_OVERFLOW=10
 DATABASE_POOL_RECYCLE=3600
 ```
 
-### Redis Environment Variables
+> **Note**: When using Docker Compose, the host should be `timescaledb` (the Docker service name), not `localhost`.
 
-For caching with Redis, configure the following environment variables in your `.env` file:
-
+#### Cache Configuration
 ```bash
 # Redis Configuration
 REDIS_ENABLED=true
-REDIS_URL=redis://localhost:6379/0
-REDIS_TTL_SECONDS=300
+REDIS_URL=redis://redis:6379/0
+REDIS_TTL_SECONDS=3600
 ```
 
-*   `REDIS_ENABLED`: Set to `true` to enable Redis caching.
-*   `REDIS_URL`: The connection URL for your Redis instance.
-*   `REDIS_TTL_SECONDS`: The default Time-To-Live (TTL) for cached entries in seconds.
+> **Note**: When using Docker Compose, the host should be `redis` (the Docker service name), not `localhost`.
+
+#### Application Environment
+```bash
+# Environment settings
+ENVIRONMENT=development
+NODE_ENV=development
+REACT_APP_API_URL=http://localhost:8000
+```
+
+### Environment Variable Validation
+
+The backend application validates required environment variables during startup:
+
+- **API_KEY**: Required for authentication system initialization
+- **DATABASE_URL**: Required for database connectivity
+- **REDIS_URL**: Required when Redis caching is enabled
+
+Missing required variables will cause the application to fail during startup with clear error messages.
 
 ### Database Migrations
 
@@ -212,3 +255,186 @@ The project uses GitHub Actions for CI/CD. When code is merged to main branch:
 4. Application is deployed to AWS ECS
 
 For manual deployments, see the infrastructure README in the `infrastructure/` directory.
+## Troubleshooting
+
+### Common Docker Issues
+
+#### Backend Container Fails to Start
+**Symptoms**: Backend container exits immediately or shows authentication errors
+
+**Solution**: 
+1. Ensure the `.env` file exists and contains the required `API_KEY` variable:
+   ```bash
+   # Check if .env file exists
+   ls -la .env
+   
+   # If missing, copy from example
+   cp .env.example .env
+   ```
+
+2. Verify the API_KEY is set in `.env`:
+   ```bash
+   grep API_KEY .env
+   ```
+
+3. Restart the containers:
+   ```bash
+   docker-compose down
+   docker-compose up
+   ```
+
+#### Database Connection Issues
+**Symptoms**: Backend shows database connection errors
+
+**Solutions**:
+1. Check if TimescaleDB container is running:
+   ```bash
+   docker-compose ps timescaledb
+   ```
+
+2. Verify database environment variables in `.env`:
+   ```bash
+   grep DATABASE_URL .env
+   ```
+
+3. Ensure the database URL uses the correct Docker service name (`timescaledb`, not `localhost`):
+   ```bash
+   DATABASE_URL=postgresql+asyncpg://postgres:password@timescaledb:5432/time_series_db
+   ```
+
+#### Redis Connection Issues
+**Symptoms**: Caching errors or Redis connection failures
+
+**Solutions**:
+1. Check if Redis container is running:
+   ```bash
+   docker-compose ps redis
+   ```
+
+2. Verify Redis configuration in `.env`:
+   ```bash
+   grep REDIS .env
+   ```
+
+3. Ensure Redis URL uses the correct Docker service name (`redis`, not `localhost`):
+   ```bash
+   REDIS_URL=redis://redis:6379/0
+   ```
+
+#### Port Conflicts
+**Symptoms**: "Port already in use" errors during startup
+
+**Solutions**:
+1. Check what's using the ports:
+   ```bash
+   # Check port 3000 (frontend)
+   lsof -i :3000
+   
+   # Check port 8000 (backend)
+   lsof -i :8000
+   
+   # Check port 5432 (database)
+   lsof -i :5432
+   ```
+
+2. Stop conflicting processes or change ports in `docker-compose.yml`
+
+#### Container Build Issues
+**Symptoms**: Docker build failures or image not found errors
+
+**Solutions**:
+1. Clean Docker cache and rebuild:
+   ```bash
+   docker-compose down --volumes
+   docker system prune -f
+   docker-compose build --no-cache
+   docker-compose up
+   ```
+
+2. Check available disk space:
+   ```bash
+   df -h
+   ```
+
+### Environment Configuration Issues
+
+#### Missing Environment Variables
+**Symptoms**: Application startup failures with environment variable errors
+
+**Solutions**:
+1. Compare your `.env` with `.env.example`:
+   ```bash
+   diff .env .env.example
+   ```
+
+2. Ensure all required variables are set:
+   ```bash
+   # Check for required variables
+   grep -E "API_KEY|DATABASE_URL|REDIS_URL" .env
+   ```
+
+#### Incorrect Service Hostnames
+**Symptoms**: Connection timeouts when services try to communicate
+
+**Solutions**:
+1. When running with Docker Compose, use Docker service names as hostnames:
+   - Database: `timescaledb` (not `localhost`)
+   - Redis: `redis` (not `localhost`)
+   - Backend: `backend` (not `localhost`)
+
+2. When running services locally (without Docker), use `localhost`
+
+### Performance Issues
+
+#### Slow Container Startup
+**Solutions**:
+1. Increase Docker memory allocation (Docker Desktop settings)
+2. Use Docker BuildKit for faster builds:
+   ```bash
+   export DOCKER_BUILDKIT=1
+   ```
+
+#### Database Performance
+**Solutions**:
+1. Check database logs:
+   ```bash
+   docker-compose logs timescaledb
+   ```
+
+2. Monitor database connections:
+   ```bash
+   docker-compose exec timescaledb psql -U postgres -d time_series_db -c "SELECT * FROM pg_stat_activity;"
+   ```
+
+### Getting Help
+
+If you encounter issues not covered here:
+
+1. **Check logs**: Use `docker-compose logs [service-name]` to view detailed logs
+2. **Restart services**: Sometimes a simple restart resolves transient issues
+3. **Clean state**: Use `docker-compose down --volumes` to reset all data
+4. **Review documentation**: Check the [Docker Startup Fix Summary](docker_startup_fix_summary.md) for recent fixes
+
+### Useful Commands
+
+```bash
+# View all container logs
+docker-compose logs
+
+# View specific service logs
+docker-compose logs backend
+
+# Check container status
+docker-compose ps
+
+# Restart a specific service
+docker-compose restart backend
+
+# Full cleanup and restart
+docker-compose down --volumes
+docker-compose up --build
+
+# Execute commands in running containers
+docker-compose exec backend bash
+docker-compose exec timescaledb psql -U postgres -d time_series_db
+```
