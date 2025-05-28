@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="11" failures="17" skipped="0" tests="49" time="4.010" timestamp="2025-05-27T23:59:44.085691-03:00" hostname="MacBook-Pro-de-Fabio-3.local"><testcase classname="tests.backend.unit.test_auth.TestAPIKeyAuth" name="test_api_key_auth_initialization" time="0.003" /><testcase classname="tests.backend.unit.test_auth.TestAPIKeyAuth" name="test_api_key_auth_missing_env_var" time="0.002" /><testcase classname="tests.backend.unit.test_auth.TestAPIKeyAuth" name="test_validate_api_key_success" time="0.001" /><testcase classname="tests.backend.unit.test_auth.TestAPIKeyAuth" name="test_validate_api_key_missing_header" time="0.002" /><testcase classname="tests.backend.unit.test_auth.TestAPIKeyAuth" name="test_validate_api_key_invalid_key" time="0.001" /><testcase classname="tests.backend.unit.test_auth.TestAPIKeyAuth" name="test_validate_api_key_timing_attack_protection" time="0.001" /><testcase classname="tests.backend.unit.test_auth.TestAPIKeyAuthIntegration" name="test_api_endpoints_with_authentication" time="0.046" /><testcase classname="tests.backend.unit.test_auth.TestAPIKeyAuthIntegration" name="test_diagnostic_endpoint_no_auth_required" time="0.005" /><testcase classname="tests.backend.unit.test_auth.TestAPIKeyAuthIntegration" name="test_health_endpoint_with_valid_auth" time="0.003"><failure message="assert 401 == 200&#10; +  where 401 = &lt;Response [401 Unauthorized]&gt;.status_code">tests/backend/unit/test_auth.py:173: in test_health_endpoint_with_valid_auth
+    assert response.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = &lt;Response [401 Unauthorized]&gt;.status_code</failure></testcase><testcase classname="tests.backend.unit.test_auth.TestAPIKeyAuthIntegration" name="test_api_key_header_case_sensitivity" time="0.003"><failure message="assert 401 == 200&#10; +  where 401 = &lt;Response [401 Unauthorized]&gt;.status_code">tests/backend/unit/test_auth.py:188: in test_api_key_header_case_sensitivity
+    assert response.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = &lt;Response [401 Unauthorized]&gt;.status_code</failure></testcase><testcase classname="tests.backend.unit.test_auth.TestAPIKeyAuthIntegration" name="test_multiple_header_scenarios" time="0.007" /><testcase classname="tests.backend.unit.test_time_series_model.TestTimeSeriesModel" name="test_create_time_series" time="0.008" /><testcase classname="tests.backend.unit.test_time_series_model.TestTimeSeriesModel" name="test_create_with_defaults" time="0.003" /><testcase classname="tests.backend.unit.test_time_series_model.TestTimeSeriesModel" name="test_get_time_domain_data" time="0.001" /><testcase classname="tests.backend.unit.test_time_series_model.TestTimeSeriesModel" name="test_get_frequency_domain_data" time="0.002" /><testcase classname="tests.backend.unit.test_time_series_service.TestTimeSeriesService" name="test_process_time_series" time="0.011" /><testcase classname="tests.backend.unit.test_time_series_service.TestTimeSeriesService" name="test_get_analysis_result_cache_hit" time="0.005" /><testcase classname="tests.backend.unit.test_time_series_service.TestTimeSeriesService" name="test_get_analysis_result_cache_miss" time="0.006" /><testcase classname="tests.backend.unit.test_time_series_service.TestTimeSeriesService" name="test_get_analysis_result_frequency_domain_cache_hit" time="0.006" /><testcase classname="tests.backend.unit.test_time_series_service.TestTimeSeriesService" name="test_get_analysis_result_frequency_domain_cache_miss" time="0.006" /><testcase classname="tests.backend.unit.test_time_series_service.TestTimeSeriesService" name="test_delete_time_series_invalidates_cache" time="0.004" /><testcase classname="tests.backend.unit.test_time_series_service.TestTimeSeriesService" name="test_update_time_series_invalidates_cache" time="0.004" /><testcase classname="tests.backend.unit.test_time_series_service.TestTimeSeriesService" name="test_get_analysis_result_not_found" time="0.005" /><testcase classname="tests.backend.integration.test_api_endpoints.TestAPIEndpoints" name="test_upload_csv_success" time="0.014"><failure message="assert 401 == 200&#10; +  where 401 = &lt;Response [401 Unauthorized]&gt;.status_code">tests/backend/integration/test_api_endpoints.py:71: in test_upload_csv_success
+    assert response.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = &lt;Response [401 Unauthorized]&gt;.status_code</failure></testcase><testcase classname="tests.backend.integration.test_api_endpoints.TestAPIEndpoints" name="test_upload_csv_no_file" time="0.006"><failure message="assert 401 == 422&#10; +  where 401 = &lt;Response [401 Unauthorized]&gt;.status_code">tests/backend/integration/test_api_endpoints.py:85: in test_upload_csv_no_file
+    assert response.status_code == 422 # Unprocessable Entity for missing file
+E   assert 401 == 422
+E    +  where 401 = &lt;Response [401 Unauthorized]&gt;.status_code</failure></testcase><testcase classname="tests.backend.integration.test_api_endpoints.TestAPIEndpoints" name="test_upload_csv_invalid_format" time="0.008"><failure message="assert 401 == 400&#10; +  where 401 = &lt;Response [401 Unauthorized]&gt;.status_code">tests/backend/integration/test_api_endpoints.py:94: in test_upload_csv_invalid_format
+    assert response.status_code == 400 # Bad Request for invalid file type
+E   assert 401 == 400
+E    +  where 401 = &lt;Response [401 Unauthorized]&gt;.status_code</failure></testcase><testcase classname="tests.backend.integration.test_api_endpoints.TestAPIEndpoints" name="test_get_analysis_result_time_domain_success" time="0.006"><failure message="assert 401 == 200&#10; +  where 401 = &lt;Response [401 Unauthorized]&gt;.status_code">tests/backend/integration/test_api_endpoints.py:116: in test_get_analysis_result_time_domain_success
+    assert response.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = &lt;Response [401 Unauthorized]&gt;.status_code</failure></testcase><testcase classname="tests.backend.integration.test_api_endpoints.TestAPIEndpoints" name="test_get_analysis_result_frequency_domain_success" time="0.006"><failure message="assert 401 == 200&#10; +  where 401 = &lt;Response [401 Unauthorized]&gt;.status_code">tests/backend/integration/test_api_endpoints.py:143: in test_get_analysis_result_frequency_domain_success
+    assert response.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = &lt;Response [401 Unauthorized]&gt;.status_code</failure></testcase><testcase classname="tests.backend.integration.test_api_endpoints.TestAPIEndpoints" name="test_get_analysis_result_not_found" time="0.006"><failure message="assert 401 == 404&#10; +  where 401 = &lt;Response [401 Unauthorized]&gt;.status_code">tests/backend/integration/test_api_endpoints.py:160: in test_get_analysis_result_not_found
+    assert response.status_code == 404
+E   assert 401 == 404
+E    +  where 401 = &lt;Response [401 Unauthorized]&gt;.status_code</failure></testcase><testcase classname="tests.backend.integration.test_api_endpoints.TestAPIEndpoints" name="test_get_analysis_result_invalid_domain" time="0.006"><failure message="assert 401 == 422&#10; +  where 401 = &lt;Response [401 Unauthorized]&gt;.status_code">tests/backend/integration/test_api_endpoints.py:170: in test_get_analysis_result_invalid_domain
+    assert response.status_code == 422 # Unprocessable Entity for invalid enum value
+E   assert 401 == 422
+E    +  where 401 = &lt;Response [401 Unauthorized]&gt;.status_code</failure></testcase><testcase classname="tests.backend.integration.test_api_endpoints.TestAPIEndpoints" name="test_export_csv_success" time="0.011"><failure message="assert 401 == 200&#10; +  where 401 = &lt;Response [401 Unauthorized]&gt;.status_code">tests/backend/integration/test_api_endpoints.py:192: in test_export_csv_success
+    assert response.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = &lt;Response [401 Unauthorized]&gt;.status_code</failure></testcase><testcase classname="tests.backend.integration.test_api_endpoints.TestAPIEndpoints" name="test_export_csv_not_found" time="0.006"><failure message="assert 401 == 404&#10; +  where 401 = &lt;Response [401 Unauthorized]&gt;.status_code">tests/backend/integration/test_api_endpoints.py:209: in test_export_csv_not_found
+    assert response.status_code == 404
+E   assert 401 == 404
+E    +  where 401 = &lt;Response [401 Unauthorized]&gt;.status_code</failure></testcase><testcase classname="tests.backend.integration.test_api_endpoints.TestAPIEndpoints" name="test_delete_analysis_success" time="0.006"><failure message="assert 405 == 200&#10; +  where 405 = &lt;Response [405 Method Not Allowed]&gt;.status_code">tests/backend/integration/test_api_endpoints.py:223: in test_delete_analysis_success
+    assert response.status_code == 200
+E   assert 405 == 200
+E    +  where 405 = &lt;Response [405 Method Not Allowed]&gt;.status_code</failure></testcase><testcase classname="tests.backend.integration.test_api_endpoints.TestAPIEndpoints" name="test_delete_analysis_not_found" time="0.009"><failure message="assert 405 == 404&#10; +  where 405 = &lt;Response [405 Method Not Allowed]&gt;.status_code">tests/backend/integration/test_api_endpoints.py:237: in test_delete_analysis_not_found
+    assert response.status_code == 404
+E   assert 405 == 404
+E    +  where 405 = &lt;Response [405 Method Not Allowed]&gt;.status_code</failure></testcase><testcase classname="tests.backend.integration.test_api_endpoints.TestAPIEndpoints" name="test_get_all_analysis_ids_success" time="0.005"><failure message="assert 404 == 200&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">tests/backend/integration/test_api_endpoints.py:251: in test_get_all_analysis_ids_success
+    assert response.status_code == 200
+E   assert 404 == 200
+E    +  where 404 = &lt;Response [404 Not Found]&gt;.status_code</failure></testcase><testcase classname="tests.backend.integration.test_api_endpoints.TestAPIEndpoints" name="test_get_all_analysis_ids_empty" time="0.004"><failure message="assert 404 == 200&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">tests/backend/integration/test_api_endpoints.py:264: in test_get_all_analysis_ids_empty
+    assert response.status_code == 200
+E   assert 404 == 200
+E    +  where 404 = &lt;Response [404 Not Found]&gt;.status_code</failure></testcase><testcase classname="tests.backend.integration.test_api_endpoints.TestAPIEndpoints" name="test_diagnostic_endpoint_success" time="0.004"><failure message="AttributeError: module 'main' has no attribute 'cache_service'">tests/backend/integration/test_api_endpoints.py:273: in test_diagnostic_endpoint_success
+    with patch('main.cache_service.get_cache_info', new_callable=AsyncMock) as mock_get_cache_info:
+/opt/homebrew/Cellar/python@3.13/3.13.2/Frameworks/Python.framework/Versions/3.13/lib/python3.13/unittest/mock.py:1479: in __enter__
+    self.target = self.getter()
+/opt/homebrew/Cellar/python@3.13/3.13.2/Frameworks/Python.framework/Versions/3.13/lib/python3.13/pkgutil.py:528: in resolve_name
+    result = getattr(result, p)
+E   AttributeError: module 'main' has no attribute 'cache_service'</failure></testcase><testcase classname="tests.backend.integration.test_api_endpoints.TestAPIEndpoints" name="test_health_endpoint_success" time="0.007"><failure message="assert 401 == 200&#10; +  where 401 = &lt;Response [401 Unauthorized]&gt;.status_code">tests/backend/integration/test_api_endpoints.py:292: in test_health_endpoint_success
+    assert response.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = &lt;Response [401 Unauthorized]&gt;.status_code</failure></testcase><testcase classname="tests.backend.integration.test_time_series_db_repository.TestTimeSeriesDBRepository" name="test_save_new_time_series" time="0.009"><error message="failed on setup with &quot;ModuleNotFoundError: No module named 'aiosqlite'&quot;">tests/backend/integration/test_time_series_db_repository.py:23: in db_session
+    engine = create_async_engine(DATABASE_URL, echo=False)
+venv/lib/python3.13/site-packages/sqlalchemy/ext/asyncio/engine.py:120: in create_async_engine
+    sync_engine = _create_engine(url, **kw)
+&lt;string&gt;:2: in create_engine
+    ???
+venv/lib/python3.13/site-packages/sqlalchemy/util/deprecations.py:281: in warned
+    return fn(*args, **kwargs)  # type: ignore[no-any-return]
+venv/lib/python3.13/site-packages/sqlalchemy/engine/create.py:602: in create_engine
+    dbapi = dbapi_meth(**dbapi_args)
+venv/lib/python3.13/site-packages/sqlalchemy/dialects/sqlite/aiosqlite.py:376: in import_dbapi
+    __import__("aiosqlite"), __import__("sqlite3")
+E   ModuleNotFoundError: No module named 'aiosqlite'</error></testcase><testcase classname="tests.backend.integration.test_time_series_db_repository.TestTimeSeriesDBRepository" name="test_save_existing_time_series_updates_data" time="0.002"><error message="failed on setup with &quot;ModuleNotFoundError: No module named 'aiosqlite'&quot;">tests/backend/integration/test_time_series_db_repository.py:23: in db_session
+    engine = create_async_engine(DATABASE_URL, echo=False)
+venv/lib/python3.13/site-packages/sqlalchemy/ext/asyncio/engine.py:120: in create_async_engine
+    sync_engine = _create_engine(url, **kw)
+&lt;string&gt;:2: in create_engine
+    ???
+venv/lib/python3.13/site-packages/sqlalchemy/util/deprecations.py:281: in warned
+    return fn(*args, **kwargs)  # type: ignore[no-any-return]
+venv/lib/python3.13/site-packages/sqlalchemy/engine/create.py:602: in create_engine
+    dbapi = dbapi_meth(**dbapi_args)
+venv/lib/python3.13/site-packages/sqlalchemy/dialects/sqlite/aiosqlite.py:376: in import_dbapi
+    __import__("aiosqlite"), __import__("sqlite3")
+E   ModuleNotFoundError: No module named 'aiosqlite'</error></testcase><testcase classname="tests.backend.integration.test_time_series_db_repository.TestTimeSeriesDBRepository" name="test_find_by_id_success" time="0.002"><error message="failed on setup with &quot;ModuleNotFoundError: No module named 'aiosqlite'&quot;">tests/backend/integration/test_time_series_db_repository.py:23: in db_session
+    engine = create_async_engine(DATABASE_URL, echo=False)
+venv/lib/python3.13/site-packages/sqlalchemy/ext/asyncio/engine.py:120: in create_async_engine
+    sync_engine = _create_engine(url, **kw)
+&lt;string&gt;:2: in create_engine
+    ???
+venv/lib/python3.13/site-packages/sqlalchemy/util/deprecations.py:281: in warned
+    return fn(*args, **kwargs)  # type: ignore[no-any-return]
+venv/lib/python3.13/site-packages/sqlalchemy/engine/create.py:602: in create_engine
+    dbapi = dbapi_meth(**dbapi_args)
+venv/lib/python3.13/site-packages/sqlalchemy/dialects/sqlite/aiosqlite.py:376: in import_dbapi
+    __import__("aiosqlite"), __import__("sqlite3")
+E   ModuleNotFoundError: No module named 'aiosqlite'</error></testcase><testcase classname="tests.backend.integration.test_time_series_db_repository.TestTimeSeriesDBRepository" name="test_find_by_id_not_found" time="0.006"><error message="failed on setup with &quot;ModuleNotFoundError: No module named 'aiosqlite'&quot;">tests/backend/integration/test_time_series_db_repository.py:23: in db_session
+    engine = create_async_engine(DATABASE_URL, echo=False)
+venv/lib/python3.13/site-packages/sqlalchemy/ext/asyncio/engine.py:120: in create_async_engine
+    sync_engine = _create_engine(url, **kw)
+&lt;string&gt;:2: in create_engine
+    ???
+venv/lib/python3.13/site-packages/sqlalchemy/util/deprecations.py:281: in warned
+    return fn(*args, **kwargs)  # type: ignore[no-any-return]
+venv/lib/python3.13/site-packages/sqlalchemy/engine/create.py:602: in create_engine
+    dbapi = dbapi_meth(**dbapi_args)
+venv/lib/python3.13/site-packages/sqlalchemy/dialects/sqlite/aiosqlite.py:376: in import_dbapi
+    __import__("aiosqlite"), __import__("sqlite3")
+E   ModuleNotFoundError: No module named 'aiosqlite'</error></testcase><testcase classname="tests.backend.integration.test_time_series_db_repository.TestTimeSeriesDBRepository" name="test_find_all" time="0.001"><error message="failed on setup with &quot;ModuleNotFoundError: No module named 'aiosqlite'&quot;">tests/backend/integration/test_time_series_db_repository.py:23: in db_session
+    engine = create_async_engine(DATABASE_URL, echo=False)
+venv/lib/python3.13/site-packages/sqlalchemy/ext/asyncio/engine.py:120: in create_async_engine
+    sync_engine = _create_engine(url, **kw)
+&lt;string&gt;:2: in create_engine
+    ???
+venv/lib/python3.13/site-packages/sqlalchemy/util/deprecations.py:281: in warned
+    return fn(*args, **kwargs)  # type: ignore[no-any-return]
+venv/lib/python3.13/site-packages/sqlalchemy/engine/create.py:602: in create_engine
+    dbapi = dbapi_meth(**dbapi_args)
+venv/lib/python3.13/site-packages/sqlalchemy/dialects/sqlite/aiosqlite.py:376: in import_dbapi
+    __import__("aiosqlite"), __import__("sqlite3")
+E   ModuleNotFoundError: No module named 'aiosqlite'</error></testcase><testcase classname="tests.backend.integration.test_time_series_db_repository.TestTimeSeriesDBRepository" name="test_delete_time_series" time="0.001"><error message="failed on setup with &quot;ModuleNotFoundError: No module named 'aiosqlite'&quot;">tests/backend/integration/test_time_series_db_repository.py:23: in db_session
+    engine = create_async_engine(DATABASE_URL, echo=False)
+venv/lib/python3.13/site-packages/sqlalchemy/ext/asyncio/engine.py:120: in create_async_engine
+    sync_engine = _create_engine(url, **kw)
+&lt;string&gt;:2: in create_engine
+    ???
+venv/lib/python3.13/site-packages/sqlalchemy/util/deprecations.py:281: in warned
+    return fn(*args, **kwargs)  # type: ignore[no-any-return]
+venv/lib/python3.13/site-packages/sqlalchemy/engine/create.py:602: in create_engine
+    dbapi = dbapi_meth(**dbapi_args)
+venv/lib/python3.13/site-packages/sqlalchemy/dialects/sqlite/aiosqlite.py:376: in import_dbapi
+    __import__("aiosqlite"), __import__("sqlite3")
+E   ModuleNotFoundError: No module named 'aiosqlite'</error></testcase><testcase classname="tests.backend.integration.test_time_series_db_repository.TestTimeSeriesDBRepository" name="test_delete_non_existent_time_series" time="0.002"><error message="failed on setup with &quot;ModuleNotFoundError: No module named 'aiosqlite'&quot;">tests/backend/integration/test_time_series_db_repository.py:23: in db_session
+    engine = create_async_engine(DATABASE_URL, echo=False)
+venv/lib/python3.13/site-packages/sqlalchemy/ext/asyncio/engine.py:120: in create_async_engine
+    sync_engine = _create_engine(url, **kw)
+&lt;string&gt;:2: in create_engine
+    ???
+venv/lib/python3.13/site-packages/sqlalchemy/util/deprecations.py:281: in warned
+    return fn(*args, **kwargs)  # type: ignore[no-any-return]
+venv/lib/python3.13/site-packages/sqlalchemy/engine/create.py:602: in create_engine
+    dbapi = dbapi_meth(**dbapi_args)
+venv/lib/python3.13/site-packages/sqlalchemy/dialects/sqlite/aiosqlite.py:376: in import_dbapi
+    __import__("aiosqlite"), __import__("sqlite3")
+E   ModuleNotFoundError: No module named 'aiosqlite'</error></testcase><testcase classname="tests.backend.integration.test_time_series_db_repository.TestTimeSeriesDBRepository" name="test_exists" time="0.002"><error message="failed on setup with &quot;ModuleNotFoundError: No module named 'aiosqlite'&quot;">tests/backend/integration/test_time_series_db_repository.py:23: in db_session
+    engine = create_async_engine(DATABASE_URL, echo=False)
+venv/lib/python3.13/site-packages/sqlalchemy/ext/asyncio/engine.py:120: in create_async_engine
+    sync_engine = _create_engine(url, **kw)
+&lt;string&gt;:2: in create_engine
+    ???
+venv/lib/python3.13/site-packages/sqlalchemy/util/deprecations.py:281: in warned
+    return fn(*args, **kwargs)  # type: ignore[no-any-return]
+venv/lib/python3.13/site-packages/sqlalchemy/engine/create.py:602: in create_engine
+    dbapi = dbapi_meth(**dbapi_args)
+venv/lib/python3.13/site-packages/sqlalchemy/dialects/sqlite/aiosqlite.py:376: in import_dbapi
+    __import__("aiosqlite"), __import__("sqlite3")
+E   ModuleNotFoundError: No module named 'aiosqlite'</error></testcase><testcase classname="tests.backend.integration.test_time_series_db_repository.TestTimeSeriesDBRepository" name="test_save_data_points_timestamp_conversion" time="0.001"><error message="failed on setup with &quot;ModuleNotFoundError: No module named 'aiosqlite'&quot;">tests/backend/integration/test_time_series_db_repository.py:23: in db_session
+    engine = create_async_engine(DATABASE_URL, echo=False)
+venv/lib/python3.13/site-packages/sqlalchemy/ext/asyncio/engine.py:120: in create_async_engine
+    sync_engine = _create_engine(url, **kw)
+&lt;string&gt;:2: in create_engine
+    ???
+venv/lib/python3.13/site-packages/sqlalchemy/util/deprecations.py:281: in warned
+    return fn(*args, **kwargs)  # type: ignore[no-any-return]
+venv/lib/python3.13/site-packages/sqlalchemy/engine/create.py:602: in create_engine
+    dbapi = dbapi_meth(**dbapi_args)
+venv/lib/python3.13/site-packages/sqlalchemy/dialects/sqlite/aiosqlite.py:376: in import_dbapi
+    __import__("aiosqlite"), __import__("sqlite3")
+E   ModuleNotFoundError: No module named 'aiosqlite'</error></testcase><testcase classname="tests.backend.integration.test_time_series_db_repository.TestTimeSeriesDBRepository" name="test_convert_to_time_series_empty_data" time="0.008"><error message="failed on setup with &quot;ModuleNotFoundError: No module named 'aiosqlite'&quot;">tests/backend/integration/test_time_series_db_repository.py:23: in db_session
+    engine = create_async_engine(DATABASE_URL, echo=False)
+venv/lib/python3.13/site-packages/sqlalchemy/ext/asyncio/engine.py:120: in create_async_engine
+    sync_engine = _create_engine(url, **kw)
+&lt;string&gt;:2: in create_engine
+    ???
+venv/lib/python3.13/site-packages/sqlalchemy/util/deprecations.py:281: in warned
+    return fn(*args, **kwargs)  # type: ignore[no-any-return]
+venv/lib/python3.13/site-packages/sqlalchemy/engine/create.py:602: in create_engine
+    dbapi = dbapi_meth(**dbapi_args)
+venv/lib/python3.13/site-packages/sqlalchemy/dialects/sqlite/aiosqlite.py:376: in import_dbapi
+    __import__("aiosqlite"), __import__("sqlite3")
+E   ModuleNotFoundError: No module named 'aiosqlite'</error></testcase><testcase classname="tests.backend.integration.test_time_series_db_repository.TestTimeSeriesDBRepository" name="test_convert_to_time_series_missing_value_columns" time="0.016"><error message="failed on setup with &quot;ModuleNotFoundError: No module named 'aiosqlite'&quot;">tests/backend/integration/test_time_series_db_repository.py:23: in db_session
+    engine = create_async_engine(DATABASE_URL, echo=False)
+venv/lib/python3.13/site-packages/sqlalchemy/ext/asyncio/engine.py:120: in create_async_engine
+    sync_engine = _create_engine(url, **kw)
+&lt;string&gt;:2: in create_engine
+    ???
+venv/lib/python3.13/site-packages/sqlalchemy/util/deprecations.py:281: in warned
+    return fn(*args, **kwargs)  # type: ignore[no-any-return]
+venv/lib/python3.13/site-packages/sqlalchemy/engine/create.py:602: in create_engine
+    dbapi = dbapi_meth(**dbapi_args)
+venv/lib/python3.13/site-packages/sqlalchemy/dialects/sqlite/aiosqlite.py:376: in import_dbapi
+    __import__("aiosqlite"), __import__("sqlite3")
+E   ModuleNotFoundError: No module named 'aiosqlite'</error></testcase></testsuite></testsuites>
