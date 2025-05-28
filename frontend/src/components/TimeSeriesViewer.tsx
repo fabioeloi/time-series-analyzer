@@ -42,7 +42,11 @@ const TimeSeriesViewer: React.FC = () => {
       try {
         setLoading(true);
         console.log(`Fetching data for analysis ID: ${analysisId}, domain: ${domain}`);
-        const response = await axios.get(`http://localhost:8000/api/analyze/${analysisId}?domain=${domain}`);
+        const response = await axios.get(`http://localhost:8000/api/analyze/${analysisId}?domain=${domain}`, {
+          headers: {
+            'X-API-Key': process.env.REACT_APP_API_KEY || ''
+          }
+        });
         console.log('Data fetched successfully:', response.data);
         setData(response.data);
         

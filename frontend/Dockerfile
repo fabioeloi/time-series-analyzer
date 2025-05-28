@@ -9,6 +9,8 @@ WORKDIR /app
 COPY package*.json ./
 COPY tsconfig.json ./
 RUN npm ci --quiet
+ARG REACT_APP_API_KEY
+ENV REACT_APP_API_KEY=$REACT_APP_API_KEY
 
 # Copy source code and build
 COPY . .
