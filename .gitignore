@@ -225,7 +225,6 @@ docker-compose.override.yml
 
 # Cache directories
 .cache/
-cache/
 
 # Application specific
 backend/data/*.pkl
