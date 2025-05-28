@@ -171,3 +171,32 @@ class TimeSeries:
             return result
         except Exception as e:
             raise ValueError(f"Error calculating frequency domain data: {str(e)}")
+    
+    def to_dto(self, domain: str = "time"):
+        """Convert TimeSeries to TimeSeriesResponseDTO"""
+        # Import here to avoid circular imports
+        from interfaces.dto.time_series_dto import TimeSeriesResponseDTO
+        
+        # Prepare domain-specific data
+        time_domain_data = None
+        frequency_domain_data = None
+        
+        if domain == "time":
+            time_domain_data = self.get_time_domain_data()
+        elif domain == "frequency":
+            frequency_domain_data = self.get_frequency_domain_data()
+        elif domain == "both":
+            # Support for both domains if needed
+            time_domain_data = self.get_time_domain_data()
+            frequency_domain_data = self.get_frequency_domain_data()
+        else:
+            raise ValueError(f"Invalid domain '{domain}'. Must be 'time', 'frequency', or 'both'")
+        
+        return TimeSeriesResponseDTO(
+            analysis_id=self.id,
+            columns=list(self.data.columns),
+            time_column=self.time_column,
+            value_columns=self.value_columns,
+            time_domain=time_domain_data,
+            frequency_domain=frequency_domain_data
+        )

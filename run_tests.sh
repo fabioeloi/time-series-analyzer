@@ -34,7 +34,7 @@ pip install -r requirements.txt
 pip install pytest pytest-cov
 
 echo "Running pytest with coverage..."
-pytest ../tests/backend --cov=./ --cov-report=term
+PYTHONPATH=. pytest ../tests/backend/unit ../tests/backend/integration --cov=./ --cov-report=term -o "env:API_KEY=dummy_api_key_for_tests"
 BACKEND_STATUS=$?
 
 if [ $BACKEND_STATUS -eq 0 ]; then

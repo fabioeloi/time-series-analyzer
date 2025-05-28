@@ -1,0 +1,36 @@
+# AWS Configuration
+aws_region = "us-west-2"
+environment = "dev"
+app_name = "time-series-analyzer"
+
+# Database Configuration
+# REQUIRED: Set a secure password for the database
+db_password = "change-me-secure-password-123!"
+db_username = "postgres"
+db_name = "time_series_db"
+db_instance_class = "db.t3.micro"  # Use db.t3.small or larger for production
+db_allocated_storage = 20
+db_max_allocated_storage = 100
+
+# Application Configuration
+# REQUIRED: Set a secure API key for the application
+api_key = "change-me-secure-api-key"
+
+# ECS Configuration
+backend_cpu = 256           # CPU units (256 = 0.25 vCPU)
+backend_memory = 512        # Memory in MB
+backend_desired_count = 1   # Number of backend tasks to run
+backend_port = 8000
+
+# SSL Configuration (Optional)
+enable_ssl = false
+ssl_certificate_arn = ""    # ARN of ACM certificate if using HTTPS
+
+# CORS Configuration
+cors_origins = ["*"]        # Restrict origins in production
+
+# Network Configuration (Optional - use defaults if not specified)
+# vpc_cidr = "10.0.0.0/16"
+# public_subnet_cidrs = ["10.0.1.0/24", "10.0.2.0/24"]
+# private_subnet_cidrs = ["10.0.10.0/24", "10.0.20.0/24"]
+# azs = ["us-west-2a", "us-west-2b"]

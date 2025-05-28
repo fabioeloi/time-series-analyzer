@@ -9,12 +9,20 @@ from typing import List, Optional
 import csv
 import tempfile
 import os
+import logging
 
 from domain.models.time_series import TimeSeries
 from application.services.time_series_service import TimeSeriesService
 from infrastructure.repositories.time_series_repository import TimeSeriesRepository
+from infrastructure.database.repositories.time_series_db_repository import TimeSeriesDBRepository
+from infrastructure.database.config import get_db, init_db, close_db
 from interfaces.dto.time_series_dto import TimeSeriesRequestDTO, TimeSeriesResponseDTO
 from infrastructure.auth.api_key_auth import get_api_key_dependency
+from infrastructure.cache.redis_config import redis_manager
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Time Series Analyzer API")
 
@@ -27,15 +35,72 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Dependency injection - create repository and inject into service
-time_series_repository = TimeSeriesRepository()
-time_series_service = TimeSeriesService(time_series_repository)
+# Global service instance (will be set during startup)
+time_series_service = None
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize database and services on startup"""
+    global time_series_service
+    try:
+        logger.info("Initializing database...")
+        await init_db()
+        logger.info("Database initialized successfully")
+
+        try:
+            logger.info("Initializing Redis connection...")
+            await redis_manager.initialize()
+            logger.info("Redis connection initialized successfully")
+        except Exception as e:
+            logger.error(f"Error initializing Redis: {str(e)}")
+            logger.warning("Redis connection not established. Caching will be disabled.")
+        
+        # For now, use the file-based repository as fallback
+        # In production, we would use only the database repository
+        fallback_repository = TimeSeriesRepository()
+        
+        logger.info("Application startup completed")
+    except Exception as e:
+        logger.error(f"Error during startup: {str(e)}")
+        # Fall back to file-based repository if database is not available
+        time_series_service = TimeSeriesService(TimeSeriesRepository())
+        logger.warning("Using file-based repository as fallback")
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Clean up on shutdown"""
+    try:
+        logger.info("Shutting down Redis connection...")
+        try:
+            await redis_manager.close()
+            logger.info("Redis connection closed successfully")
+        except Exception as e:
+            logger.error(f"Error closing Redis connection: {str(e)}")
+
+        logger.info("Shutting down database connections...")
+        await close_db()
+        logger.info("Shutdown completed")
+    except Exception as e:
+        logger.error(f"Error during shutdown: {str(e)}")
+
+
+async def get_time_series_service(db_session = Depends(get_db)) -> TimeSeriesService:
+    """Dependency to get TimeSeriesService with database repository"""
+    try:
+        db_repository = TimeSeriesDBRepository(db_session)
+        return TimeSeriesService(db_repository)
+    except Exception as e:
+        logger.warning(f"Database not available, using fallback: {str(e)}")
+        return TimeSeriesService(TimeSeriesRepository())
 
 @app.post("/api/upload-csv/", response_model=TimeSeriesResponseDTO)
 async def upload_csv(file: UploadFile = File(...),
                      time_column: Optional[str] = None,
                      value_columns: Optional[List[str]] = None,
-                     api_key: str = get_api_key_dependency()):
+                     api_key: str = get_api_key_dependency(),
+                     service: TimeSeriesService = Depends(get_time_series_service)):
     """
     Upload a CSV file for time series analysis.
     """
@@ -86,7 +151,7 @@ async def upload_csv(file: UploadFile = File(...),
         )
         
         # Process the time series data
-        result = time_series_service.process_time_series(request_dto)
+        result = await service.process_time_series(request_dto)
         return result
         
     except ValueError as e:
@@ -100,70 +165,88 @@ async def upload_csv(file: UploadFile = File(...),
         raise HTTPException(status_code=500, detail=f"Error processing CSV: {str(e)}")
 
 @app.get("/api/analyze/{analysis_id}", response_model=TimeSeriesResponseDTO)
-async def get_analysis(analysis_id: str, domain: str = "time", api_key: str = get_api_key_dependency()):
+async def get_analysis(analysis_id: str, domain: str = "time",
+                      api_key: str = get_api_key_dependency(),
+                      service: TimeSeriesService = Depends(get_time_series_service)):
     """
     Retrieve time series analysis results.
     Domain can be 'time' or 'frequency'.
     """
     try:
-        result = time_series_service.get_analysis_result(analysis_id, domain)
+        result = await service.get_analysis_result(analysis_id, domain)
         return result
     except Exception as e:
         raise HTTPException(status_code=404, detail=f"Analysis not found: {str(e)}")
 
 @app.get("/api/diagnostic")
-async def diagnostic(analysis_id: Optional[str] = None):
+async def diagnostic(analysis_id: Optional[str] = None,
+                    service: TimeSeriesService = Depends(get_time_series_service)):
     """
     Diagnostic endpoint to help troubleshoot issues with analysis IDs.
     Returns information about available analyses and storage status.
     """
-    # Get the repository from the service
-    repository = time_series_service.repository
-    
-    # Check the storage file
-    storage_path = repository._storage_path
-    storage_file = repository._storage_file
-    backup_file = repository._backup_file
-    
-    storage_info = {
-        "storage_path": storage_path,
-        "storage_file": storage_file,
-        "storage_file_exists": os.path.exists(storage_file),
-        "storage_file_size": os.path.getsize(storage_file) if os.path.exists(storage_file) else 0,
-        "backup_file": backup_file,
-        "backup_file_exists": os.path.exists(backup_file),
-        "data_directory_exists": os.path.exists(storage_path)
-    }
-    
-    # Get list of available analysis IDs
-    available_ids = repository.list_available_ids()
-    
-    result = {
-        "storage_info": storage_info,
-        "available_analyses": available_ids,
-        "analysis_count": len(available_ids)
-    }
-    
-    # If specific analysis ID was provided, check if it exists
-    if analysis_id:
-        analysis = repository.find_by_id(analysis_id)
-        if analysis:
-            result["analysis_found"] = True
-            result["analysis_details"] = {
-                "id": analysis.id,
-                "time_column": analysis.time_column,
-                "value_columns": analysis.value_columns,
-                "data_columns": list(analysis.data.columns) if analysis.data is not None else [],
-                "data_length": len(analysis.data) if analysis.data is not None else 0
-            }
-        else:
-            result["analysis_found"] = False
-            result["error"] = f"Analysis with ID {analysis_id} not found."
-    
-    return JSONResponse(content=result)
+    try:
+        # Get the repository from the service
+        repository = service.repository
+        
+        # Basic repository info
+        repository_type = type(repository).__name__
+        storage_info = {
+            "repository_type": repository_type,
+            "database_backend": "TimescaleDB" if "DB" in repository_type else "File-based"
+        }
+        
+        # If it's a file-based repository, get file info
+        if hasattr(repository, '_storage_path'):
+            storage_path = repository._storage_path
+            storage_file = repository._storage_file
+            backup_file = repository._backup_file
+            
+            storage_info.update({
+                "storage_path": storage_path,
+                "storage_file": storage_file,
+                "storage_file_exists": os.path.exists(storage_file),
+                "storage_file_size": os.path.getsize(storage_file) if os.path.exists(storage_file) else 0,
+                "backup_file": backup_file,
+                "backup_file_exists": os.path.exists(backup_file),
+                "data_directory_exists": os.path.exists(storage_path)
+            })
+        
+        # Get all available analyses
+        all_analyses = await repository.find_all()
+        available_ids = [ts.id for ts in all_analyses]
+        
+        result = {
+            "storage_info": storage_info,
+            "available_analyses": available_ids,
+            "analysis_count": len(available_ids)
+        }
+        
+        # If specific analysis ID was provided, check if it exists
+        if analysis_id:
+            analysis = await repository.find_by_id(analysis_id)
+            if analysis:
+                result["analysis_found"] = True
+                result["analysis_details"] = {
+                    "id": analysis.id,
+                    "time_column": analysis.time_column,
+                    "value_columns": analysis.value_columns,
+                    "data_columns": list(analysis.data.columns) if analysis.data is not None else [],
+                    "data_length": len(analysis.data) if analysis.data is not None else 0
+                }
+            else:
+                result["analysis_found"] = False
+                result["error"] = f"Analysis with ID {analysis_id} not found."
+        
+        return JSONResponse(content=result)
+    except Exception as e:
+        logger.error(f"Error in diagnostic endpoint: {str(e)}")
+        return JSONResponse(content={"error": f"Diagnostic failed: {str(e)}"}, status_code=500)
 
 @app.get("/api/export/{analysis_id}")
-async def export_analysis(analysis_id: str, format: str = "csv", domain: str = "time", api_key: str = get_api_key_dependency()):
+async def export_analysis(analysis_id: str, format: str = "csv", domain: str = "time",
+                         api_key: str = get_api_key_dependency(),
+                         service: TimeSeriesService = Depends(get_time_series_service)):
     """
     Export time series analysis data in various formats.
     Format can be 'csv' or 'json'.
@@ -171,7 +254,7 @@ async def export_analysis(analysis_id: str, format: str = "csv", domain: str = "
     """
     try:
         # Get the analysis result
-        result = time_series_service.get_analysis_result(analysis_id, domain)
+        result = await service.get_analysis_result(analysis_id, domain)
         
         if format.lower() == "json":
             # Return the data as JSON

@@ -231,3 +231,13 @@ cache/
 backend/data/*.pkl
 backend/data/*.json
 !backend/data/.gitkeep
+
+# Terraform
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.tfplan.*
+.terraformrc
+terraform.rc

@@ -68,13 +68,13 @@ class TimeSeriesRepository(TimeSeriesRepositoryInterface):
             self.logger.info("No time series storage file found. Starting with empty storage.")
             self._storage = {}
         
-    def save(self, time_series: TimeSeries) -> None:
+    async def save(self, time_series: TimeSeries) -> None:
         """Save a time series to the repository"""
         self._storage[time_series.id] = time_series
         self.logger.info(f"Saved time series with ID: {time_series.id}")
         self._save_to_disk()
         
-    def find_by_id(self, id: str) -> Optional[TimeSeries]:
+    async def find_by_id(self, id: str) -> Optional[TimeSeries]:
         """Find a time series by ID"""
         result = self._storage.get(id)
         if result:
@@ -83,12 +83,12 @@ class TimeSeriesRepository(TimeSeriesRepositoryInterface):
             self.logger.warning(f"Time series with ID: {id} not found")
         return result
         
-    def find_all(self) -> List[TimeSeries]:
+    async def find_all(self) -> List[TimeSeries]:
         """Get all stored time series"""
         self.logger.info(f"Returning all {len(self._storage)} time series analyses")
         return list(self._storage.values())
         
-    def delete(self, id: str) -> None:
+    async def delete(self, id: str) -> None:
         """Delete a time series by ID"""
         if id in self._storage:
             del self._storage[id]
@@ -97,7 +97,7 @@ class TimeSeriesRepository(TimeSeriesRepositoryInterface):
         else:
             self.logger.warning(f"Cannot delete: time series with ID: {id} not found")
             
-    def exists(self, id: str) -> bool:
+    async def exists(self, id: str) -> bool:
         """Check if a time series exists with the given ID"""
         return id in self._storage
     
