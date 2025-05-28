@@ -319,7 +319,7 @@ async def export_analysis(analysis_id: str,
 
 
 @app.get("/api/health")
-async def health_check(api_key: str = get_api_key_dependency()):
+async def health_check():
     return {"status": "healthy"}
 
 if __name__ == "__main__":
