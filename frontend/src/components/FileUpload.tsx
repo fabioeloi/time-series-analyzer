@@ -144,7 +144,8 @@ const FileUpload: React.FC = () => {
       
       const response = await axios.post('http://localhost:8000/api/upload-csv/', formData, {
         headers: {
-          'Content-Type': 'multipart/form-data'
+          'Content-Type': 'multipart/form-data',
+          'X-API-Key': process.env.REACT_APP_API_KEY || ''
         }
       });
       
