@@ -19,6 +19,7 @@ This project follows Domain-Driven Design (DDD) principles and is built using:
 - Python with FastAPI
 - Data processing with Pandas, NumPy, and SciPy
 - RESTful API endpoints
+- In-memory caching service
 
 ### Frontend
 - React with TypeScript
@@ -49,20 +50,24 @@ This project follows Domain-Driven Design (DDD) principles and is built using:
 
 ## Current Project Status
 
-🟢 **All Services Operational** - The Docker backend startup issue has been successfully resolved and all containers are working properly.
+🟢 **All Services Operational & CI/CD Stable** - All services are working, and the CI/CD pipeline is stable after recent fixes.
 
 ### Service Status
 - ✅ **TimescaleDB**: Running on port 5432 with time-series optimizations
-- ✅ **Redis**: Running on port 6379 for caching
-- ✅ **Backend**: Running on port 8000 with authentication enabled
+- ✅ **Redis**: Running on port 6379 for caching (Note: Currently, an in-memory cache is used by default in the backend service. Redis integration is available but might require configuration.)
+- ✅ **Backend**: Running on port 8000 with authentication and in-memory caching enabled
 - ✅ **Frontend**: Running on port 3000 with API connectivity
 
 ### Recent Fixes
-- **Docker Backend Startup**: Resolved missing API_KEY environment variable issue
-- **Environment Configuration**: Added comprehensive `.env` file for all services
-- **Container Dependencies**: Updated Docker Compose with proper service dependencies and health checks
+- **CI/CD Pipeline**: Resolved issues with deprecated actions and backend test failures.
+- **Cache Module**: Added an in-memory caching service to the backend.
+- **Docker Backend Startup**: Resolved missing API_KEY environment variable issue.
+- **Environment Configuration**: Added comprehensive `.env` file for all services.
+- **Container Dependencies**: Updated Docker Compose with proper service dependencies and health checks.
 
-For detailed information about the recent Docker fixes, see [Docker Startup Fix Summary](docs/docker_startup_fix_summary.md).
+For detailed information about recent fixes, see:
+- [CI/CD Pipeline Fixes Summary](docs/ci_cd_pipeline_final_fixes.md)
+- [Docker Startup Fix Summary](docs/docker_startup_fix_summary.md)
 
 ## Getting Started
 
