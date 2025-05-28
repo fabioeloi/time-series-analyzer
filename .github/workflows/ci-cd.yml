@@ -35,14 +35,14 @@ jobs:
         pytest tests/backend/unit/ --cov=backend --cov-report=xml --junitxml=test-results.xml -v
     
     - name: Upload test results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: backend-test-results
         path: test-results.xml
     
     - name: Upload coverage reports
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: backend-coverage
@@ -74,7 +74,7 @@ jobs:
         npm test -- --coverage --watchAll=false --passWithNoTests
     
     - name: Upload frontend test results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: frontend-test-results
