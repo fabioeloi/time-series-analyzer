@@ -4,124 +4,164 @@ on:
   push:
     branches: [ main, develop ]
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main ]
 
 jobs:
   test_backend:
     runs-on: ubuntu-latest
+    
     steps:
-      - uses: actions/checkout@v4
-      
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.9'
-          cache: 'pip'
-          
-      - name: Create virtual environment and install dependencies
-        run: |
-          python -m venv venv
-          source venv/bin/activate
-          python -m pip install --upgrade pip
-          pip install -r backend/requirements.txt
-          
-      - name: Run backend tests
-        run: |
-          source venv/bin/activate
-          export PYTHONPATH="${PWD}:${PWD}/backend:$PYTHONPATH"
-          # Run only unit tests for CI reliability, skip integration tests that require database setup
-          pytest tests/backend/unit/ --cov=backend --cov-report=xml --cov-report=term-missing --junitxml=test-results.xml --tb=short -v || true
-          
-      - name: Publish test results
-        uses: dorny/test-reporter@v1
-        if: always()
-        with:
-          name: Backend Tests
-          path: test-results.xml
-          reporter: java-junit
-          
-      - name: Upload coverage report
-        uses: codecov/codecov-action@v3
-        if: always()
-        with:
-          file: ./coverage.xml
-          flags: backend
-          name: backend-coverage
-          
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        cache: 'pip'
+        cache-dependency-path: backend/requirements.txt
+    
+    - name: Create virtual environment and install dependencies
+      run: |
+        python -m venv venv
+        source venv/bin/activate
+        python -m pip install --upgrade pip
+        pip install -r backend/requirements.txt
+    
+    - name: Run backend tests
+      run: |
+        source venv/bin/activate
+        export PYTHONPATH="${PWD}:${PWD}/backend:$PYTHONPATH"
+        pytest tests/backend/unit/ --cov=backend --cov-report=xml --junitxml=test-results.xml -v
+    
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: backend-test-results
+        path: test-results.xml
+    
+    - name: Upload coverage reports
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: backend-coverage
+        path: coverage.xml
+
   test_frontend:
     runs-on: ubuntu-latest
+    
     steps:
-      - uses: actions/checkout@v4
-      
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '16'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-          
-      - name: Install frontend dependencies
-        run: |
-          cd frontend
-          npm ci --quiet
-          
-      - name: Run frontend tests
-        run: |
-          cd frontend
-          export CI=true
-          npm test -- --coverage --watchAll=false --testPathIgnorePatterns=/node_modules/ --maxWorkers=2 --passWithNoTests
-          
-      - name: Upload coverage report
-        uses: codecov/codecov-action@v3
-        if: always()
-        with:
-          directory: ./frontend/coverage
-          flags: frontend
-          name: frontend-coverage
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '16'
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+    
+    - name: Install frontend dependencies
+      run: |
+        cd frontend
+        npm ci --quiet
+    
+    - name: Run frontend tests
+      run: |
+        cd frontend
+        export CI=true
+        npm test -- --coverage --watchAll=false --passWithNoTests
+    
+    - name: Upload frontend test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: frontend-test-results
+        path: frontend/coverage/
 
   build_check:
     needs: [test_backend, test_frontend]
     runs-on: ubuntu-latest
+    
     steps:
-      - uses: actions/checkout@v4
-      
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-        
-      - name: Build backend Docker image
-        uses: docker/build-push-action@v4
-        with:
-          context: ./backend
-          push: false
-          tags: time-series-analyzer-backend:test
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-      
-      - name: Build frontend Docker image
-        uses: docker/build-push-action@v4
-        with:
-          context: ./frontend
-          push: false
-          tags: time-series-analyzer-frontend:test
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+    
+    - name: Build backend Docker image
+      uses: docker/build-push-action@v4
+      with:
+        context: ./backend
+        push: false
+        tags: time-series-analyzer-backend:test
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+    
+    - name: Build frontend Docker image
+      uses: docker/build-push-action@v4
+      with:
+        context: ./frontend
+        push: false
+        tags: time-series-analyzer-frontend:test
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
 
-  # Simplified deployment - only basic validation
-  deploy_check:
+  integration_tests:
     needs: [build_check]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    services:
+      postgres:
+        image: timescale/timescaledb:latest-pg14
+        env:
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_USER: test_user
+          POSTGRES_DB: test_timeseries
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    
     steps:
-      - uses: actions/checkout@v4
-      
-      - name: Validate Terraform configuration
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: ~1.6.0
-          
-      - name: Terraform Init and Validate
-        run: |
-          cd infrastructure
-          terraform init -backend=false
-          terraform validate
-          terraform fmt -check
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        cache: 'pip'
+        cache-dependency-path: backend/requirements.txt
+    
+    - name: Create virtual environment and install dependencies
+      run: |
+        python -m venv venv
+        source venv/bin/activate
+        python -m pip install --upgrade pip
+        pip install -r backend/requirements.txt
+    
+    - name: Wait for PostgreSQL
+      run: |
+        for i in {1..30}; do
+          if pg_isready -h localhost -p 5432 -U test_user; then
+            break
+          fi
+          echo "Waiting for PostgreSQL..."
+          sleep 2
+        done
+    
+    - name: Run integration tests
+      env:
+        DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_timeseries
+        TEST_DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_timeseries
+      run: |
+        source venv/bin/activate
+        export PYTHONPATH="${PWD}:${PWD}/backend:$PYTHONPATH"
+        pytest tests/backend/integration/ -v --tb=short

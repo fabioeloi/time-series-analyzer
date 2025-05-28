@@ -75,11 +75,21 @@ def reset_api_key_auth():
     _api_key_auth_instance = None
 
 
+def require_valid_api_key(x_api_key: Optional[str] = Header(None, alias="X-API-Key")) -> str:
+    """
+    Dependency function to validate the API key.
+    This function will be called by FastAPI for each request to a protected endpoint.
+    It retrieves the (potentially reset and new) APIKeyAuth instance and validates the key.
+    """
+    auth_service = get_api_key_auth()  # Ensures fresh instance if reset_api_key_auth was called
+    return auth_service.validate_api_key(x_api_key)
+
+
 def get_api_key_dependency():
     """
     FastAPI dependency for API key authentication.
     
     Returns:
-        Callable: The API key validation dependency
+        Callable: A Depends instance wrapping the API key validation logic.
     """
-    return Depends(get_api_key_auth().validate_api_key)
+    return Depends(require_valid_api_key)

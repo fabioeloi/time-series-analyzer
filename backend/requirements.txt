@@ -18,3 +18,4 @@ alembic>=1.13.0
 psycopg2-binary>=2.9.9
 python-dotenv>=1.0.0
 redis>=5.0.0
+pytest-env>=0.8.2
