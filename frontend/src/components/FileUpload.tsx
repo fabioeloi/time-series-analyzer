@@ -142,12 +142,18 @@ const FileUpload: React.FC = () => {
         formData.append('value_columns', col);
       });
       
-      const response = await axios.post('http://localhost:8000/api/upload-csv/', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          'X-API-Key': process.env.REACT_APP_API_KEY || ''
-        }
-      });
+      const headers: Record<string, string> = {
+        'Content-Type': 'multipart/form-data',
+      };
+      const apiKey = process.env.REACT_APP_API_KEY;
+      if (apiKey && apiKey.trim().length > 0) {
+        headers['X-API-Key'] = apiKey;
+      }
+      const response = await axios.post(
+        'http://localhost:8000/api/upload-csv/',
+        formData,
+        { headers }
+      );
       
       const analysisId = response.data.analysis_id;
       navigate(`/view/${analysisId}`);
