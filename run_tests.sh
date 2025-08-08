@@ -70,43 +70,35 @@ cd ..
 
 # Test Docker build
 print_header "TESTING DOCKER BUILD"
-echo "Building Docker images..."
+# Skip Docker tests if daemon is not running
 if ! docker info >/dev/null 2>&1; then
-  echo "Docker daemon not running, skipping Docker tests..."
-  DOCKER_STATUS=1
+    echo "Docker daemon not running, skipping Docker tests..."
+    DOCKER_STATUS=1
 else
-  docker compose build
-DOCKER_STATUS=$?
+    echo "Building Docker images..."
+    docker compose build
+    DOCKER_STATUS=$?
 
-if [ $DOCKER_STATUS -eq 0 ]; then
-    echo -e "${GREEN}✓ Docker build successful${NC}"
-    
-    echo "Starting containers briefly to ensure they run..."
-    docker compose up -d
-    
-    # Wait a short time for services to start
-    echo "Waiting for services to start..."
-    sleep 10
-    
-    # Check if services are running
-    BACKEND_RUNNING=$(docker compose ps -q backend | wc -l)
-    FRONTEND_RUNNING=$(docker compose ps -q frontend | wc -l)
-    
-    if [ $BACKEND_RUNNING -gt 0 ] && [ $FRONTEND_RUNNING -gt 0 ]; then
-        echo -e "${GREEN}✓ All containers started successfully${NC}"
+    if [ $DOCKER_STATUS -eq 0 ]; then
+        echo -e "${GREEN}✓ Docker build successful${NC}"
+        echo "Starting containers briefly to ensure they run..."
+        docker compose up -d
+        echo "Waiting for services to start..."
+        sleep 10
+        BACKEND_RUNNING=$(docker compose ps -q backend | wc -l)
+        FRONTEND_RUNNING=$(docker compose ps -q frontend | wc -l)
+        if [ $BACKEND_RUNNING -gt 0 ] && [ $FRONTEND_RUNNING -gt 0 ]; then
+            echo -e "${GREEN}✓ All containers started successfully${NC}"
+        else
+            echo -e "${RED}✗ Container startup issues detected${NC}"
+            DOCKER_STATUS=1
+        fi
+        echo "Stopping test containers..."
+        docker compose down
     else
-        echo -e "${RED}✗ Container startup issues detected${NC}"
-        DOCKER_STATUS=1
+        echo -e "${RED}✗ Docker build failed${NC}"
     fi
-    
-    # Stop containers
-    echo "Stopping test containers..."
-    docker compose down
 fi
-else
-    echo -e "${RED}✗ Docker build failed${NC}"
-fi
-
 # Print summary
 print_header "TEST SUMMARY"
 if [ $BACKEND_STATUS -eq 0 ]; then
