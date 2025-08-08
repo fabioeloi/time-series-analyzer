@@ -71,7 +71,11 @@ cd ..
 # Test Docker build
 print_header "TESTING DOCKER BUILD"
 echo "Building Docker images..."
-docker compose build
+if ! docker info >/dev/null 2>&1; then
+  echo "Docker daemon not running, skipping Docker tests..."
+  DOCKER_STATUS=1
+else
+  docker compose build
 DOCKER_STATUS=$?
 
 if [ $DOCKER_STATUS -eq 0 ]; then
@@ -98,6 +102,7 @@ if [ $DOCKER_STATUS -eq 0 ]; then
     # Stop containers
     echo "Stopping test containers..."
     docker compose down
+fi
 else
     echo -e "${RED}✗ Docker build failed${NC}"
 fi
