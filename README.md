@@ -22,6 +22,12 @@ This project follows Domain-Driven Design (DDD) principles and is built using:
 - In-memory caching service
 
 ### Frontend
+
+Authentication header:
+- The frontend sends `X-API-Key` with requests only if `REACT_APP_API_KEY` is set and non-empty in the environment.
+- For local dev, create a `.env` in `frontend/` with `REACT_APP_API_KEY=<your_key>` if your backend requires it.
+- For tests, the header is omitted when the env var is not set, matching the test expectations.
+
 - React with TypeScript
 - D3.js for data visualization
 - Responsive design
@@ -108,6 +114,22 @@ For detailed information about recent fixes, see:
    - API Documentation: http://localhost:8000/docs
 
 ### Testing
+
+
+
+Run the full suite (backend + frontend + optional Docker):
+
+```zsh
+./run_tests.sh
+```
+
+Notes:
+- The script creates/uses a backend venv automatically and runs unit + integration tests.
+- If the Docker daemon is not running, Docker checks are skipped and do not fail the run.
+- Coverage is printed for backend tests.
+
+You can also run tests individually:
+
 
 Run backend tests:
 ```
