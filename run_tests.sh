@@ -73,7 +73,7 @@ print_header "TESTING DOCKER BUILD"
 # Skip Docker tests if daemon is not running
 if ! docker info >/dev/null 2>&1; then
     echo "Docker daemon not running, skipping Docker tests..."
-    DOCKER_STATUS=1
+    DOCKER_STATUS=0
 else
     echo "Building Docker images..."
     docker compose build
